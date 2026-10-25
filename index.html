@@ -1,0 +1,813 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>AIでつくってためそ 本棚</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" id="fontLink" href="https://fonts.googleapis.com/css2?family=Shippori+Mincho+B1:wght@600;800&family=Zen+Kaku+Gothic+New:wght@400;500;700&display=swap">
+<style>
+[hidden]{display:none!important}
+/* 図書室の壁に作り付けの本棚。背表紙を縦書きで並べ、選んだ1冊だけが手前に出てくる */
+:root {
+  --wall: #e3e6e1; --wall-line: #d6dad3; --ink: #1e2421; --muted: #5d665f; --panel: #fbfaf6; --panel-line: #d9dcd4;
+  --wood: #8b5a35; --wood-hi: #a8714a; --wood-dark: #5b3a21; --gold: #d8b566; --accent: #b5452f; --on-accent: #fff;
+  --shadow: rgba(30, 24, 18, .28); --veil: rgba(20, 22, 20, .55); --field: #fff;
+  --f-display: "Shippori Mincho B1", "Hiragino Mincho ProN", "Yu Mincho", "Noto Serif CJK JP", serif;
+  --f-body: "Zen Kaku Gothic New", "Hiragino Sans", "Yu Gothic", system-ui, sans-serif;
+  --book-h: 260px; --cover-h: 318px; --plank: 22px;
+}
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) {
+  --wall: #161a1a; --wall-line: #1d2222; --ink: #ebe8df; --muted: #a3aaa3; --panel: #222828; --panel-line: #343c3b;
+  --wood: #5d3b22; --wood-hi: #74492a; --wood-dark: #3a2413; --gold: #e0c27a; --shadow: rgba(0,0,0,.5); --veil: rgba(0,0,0,.66); --field: #1a1f1f; color-scheme: dark } }
+:root[data-theme="dark"] {
+  --wall: #161a1a; --wall-line: #1d2222; --ink: #ebe8df; --muted: #a3aaa3; --panel: #222828; --panel-line: #343c3b;
+  --wood: #5d3b22; --wood-hi: #74492a; --wood-dark: #3a2413; --gold: #e0c27a; --shadow: rgba(0,0,0,.5); --veil: rgba(0,0,0,.66); --field: #1a1f1f; color-scheme: dark }
+@media (max-width: 560px) { :root { --book-h: 224px; --cover-h: 262px; --plank: 18px; } }
+
+* { box-sizing: border-box; }
+body { margin: 0; background: var(--wall); color: var(--ink); font-family: var(--f-body); font-size: 15px; line-height: 1.7;
+  background-image: repeating-linear-gradient(90deg, transparent 0 79px, var(--wall-line) 79px 80px); }
+.wrap { max-width: 1120px; margin: 0 auto; padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); padding-block: 28px 48px; }
+button, input, select, textarea { font: inherit; color: inherit; }
+:focus-visible { outline: 3px solid var(--accent); outline-offset: 2px; }
+
+/* 見出し */
+.top { display: grid; grid-template-columns: 1fr auto; gap: 8px 16px; align-items: end; }
+.top h1 { margin: 0; font-family: var(--f-display); font-weight: 800; font-size: clamp(26px, 4.4vw, 40px); line-height: 1.25; letter-spacing: .02em; text-wrap: balance; }
+.top p { margin: 4px 0 0; color: var(--muted); max-width: 46em; grid-column: 1 / -1; }
+.owner { font-size: 13px; color: var(--muted); }
+.owner a { color: inherit; }
+.gear { justify-self: end; display: inline-flex; gap: 6px; align-items: center; border: 1px solid var(--panel-line); background: var(--panel); padding: 7px 14px; border-radius: 999px; cursor: pointer; font-size: 14px; }
+.gear:hover { border-color: var(--accent); }
+.adminbadge { font-size: 11px; font-weight: 700; color: var(--on-accent); background: var(--accent); border-radius: 999px; padding: 0 7px; margin-left: 2px; }
+
+.tools { display: flex; flex-wrap: wrap; gap: 10px 14px; align-items: center; margin: 22px 0 18px; }
+.search { flex: 1 1 260px; min-width: 0; display: flex; align-items: center; gap: 8px; background: var(--field); border: 1px solid var(--panel-line); border-radius: 10px; padding: 0 12px; }
+.search input { flex: 1; min-width: 0; border: 0; background: transparent; padding: 10px 0; outline: none; }
+.search kbd { font-size: 12px; color: var(--muted); border: 1px solid var(--panel-line); border-radius: 4px; padding: 0 5px; }
+.chips { display: flex; flex-wrap: wrap; gap: 6px; }
+.chip { border: 1px solid var(--panel-line); background: var(--panel); border-radius: 999px; padding: 5px 13px; cursor: pointer; font-size: 14px; }
+.chip[aria-pressed="true"] { background: var(--ink); color: var(--wall); border-color: var(--ink); }
+.chip small { opacity: .7; margin-left: 4px; font-variant-numeric: tabular-nums; }
+.sort { border: 1px solid var(--panel-line); background: var(--panel); border-radius: 10px; padding: 7px 10px; }
+.count { font-size: 13px; color: var(--muted); margin: 0; }
+.countbar { display: flex; justify-content: space-between; align-items: center; gap: 10px; margin: 0 0 8px; position: relative; }
+.viewmenu { position: relative; }
+.viewmenu summary { list-style: none; cursor: pointer; font-size: 13px; color: var(--muted); padding: 4px 10px; border-radius: 6px; user-select: none; }
+.viewmenu summary::-webkit-details-marker { display: none; }
+.viewmenu summary:hover, .viewmenu[open] summary { color: var(--ink); background: var(--panel); box-shadow: inset 0 0 0 1px var(--panel-line); }
+.vm-panel { position: absolute; right: 0; top: calc(100% + 6px); z-index: 15; width: min(320px, calc(100vw - 32px)); background: var(--panel); border: 1px solid var(--panel-line); border-radius: 10px; box-shadow: 0 12px 30px var(--shadow); padding: 12px 14px; display: flex; flex-direction: column; gap: 10px; }
+.vm-panel fieldset { border: 0; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 6px; }
+.vm-panel legend { font-size: 12px; color: var(--muted); padding: 0; margin-bottom: 4px; }
+.seg { display: grid; grid-template-columns: 1fr 1fr; border: 1px solid var(--panel-line); border-radius: 8px; overflow: hidden; }
+.seg label { position: relative; cursor: pointer; }
+.seg input { position: absolute; opacity: 0; inset: 0; margin: 0; cursor: pointer; }
+.seg span { display: block; text-align: center; padding: 7px 6px; font-size: 13px; }
+.seg label + label span { border-left: 1px solid var(--panel-line); }
+.seg input:checked + span { background: var(--ink); color: var(--wall); font-weight: 700; }
+.seg input:focus-visible + span { outline: 3px solid var(--accent); outline-offset: -3px; }
+.still, .mv { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; display: block; }
+.flip { position: absolute; inset: 0; }
+.flip img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; opacity: 0; }
+.flip img.on { opacity: 1; }
+.mv.wait { opacity: 0; transition: opacity .3s; }
+.mv.wait.on { opacity: 1; }
+.notice { display: flex; flex-wrap: wrap; gap: 8px 12px; align-items: center; background: var(--panel); border: 1px dashed var(--accent); border-radius: 10px; padding: 8px 14px; font-size: 14px; margin-bottom: 14px; }
+.linkbtn { border: 0; background: none; color: var(--accent); text-decoration: underline; cursor: pointer; padding: 0; }
+
+/* 本棚 */
+.case { position: relative; border-radius: 6px; padding: 10px 14px 0; background: var(--wood-dark); box-shadow: inset 0 0 0 6px var(--wood), 0 10px 30px var(--shadow); }
+.shelf { --ih: var(--book-h); display: flex; flex-wrap: wrap; align-items: flex-end; padding: 0 8px;
+  background: repeating-linear-gradient(to bottom, rgba(0,0,0,.18) 0, transparent 40px, transparent calc(var(--ih) + 12px), var(--wood-hi) calc(var(--ih) + 12px), var(--wood) calc(var(--ih) + 15px), var(--wood) calc(var(--ih) + 12px + var(--plank)) ); }
+.shelf.covers { --ih: var(--cover-h); gap: 0 10px; padding: 0 10px; }
+.shelf.covers .slot { flex: none; }
+.slot { height: calc(var(--ih) + 12px + var(--plank)); display: flex; align-items: flex-end; padding: 0 1px var(--plank); }
+/* 表紙を見せて立てかける */
+.cover { --c: #555; position: relative; width: calc(var(--cover-h) * .6); flex: none; height: calc(var(--cover-h) - 6px); border: 0; padding: 12px 12px 12px 18px; border-radius: 3px 8px 8px 3px; cursor: pointer; text-align: left; color: #fbf4e2;
+  display: flex; flex-direction: column; gap: 8px; background: linear-gradient(90deg, rgba(0,0,0,.35) 0, rgba(255,255,255,.12) 6px, rgba(0,0,0,0) 12px), var(--c);
+  box-shadow: inset 0 0 0 1px rgba(0,0,0,.25), 4px 6px 10px rgba(0,0,0,.35); transform: perspective(700px) rotateX(4deg); transform-origin: 50% 100%; transition: transform .25s cubic-bezier(.3,1.4,.5,1), box-shadow .2s; }
+.cover:hover, .cover:focus-visible { transform: perspective(700px) rotateX(0) translateY(-10px); box-shadow: inset 0 0 0 1px rgba(0,0,0,.25), 8px 16px 22px rgba(0,0,0,.4); z-index: 2; }
+.cover .cv-top { display: flex; justify-content: space-between; align-items: center; font-family: var(--f-display); font-size: 12px; color: var(--gold); border-bottom: 1px solid rgba(216,181,102,.6); padding-bottom: 6px; gap: 6px; white-space: nowrap; }
+.cover .cv-top span:last-child { min-width: 0; overflow: hidden; text-overflow: ellipsis; }
+.cover .cv-screen { position: relative; width: 100%; aspect-ratio: 16 / 10; border-radius: 4px; overflow: hidden; background: #0d0f0f; box-shadow: 0 0 0 2px rgba(216,181,102,.55); flex: none; }
+.cover .cv-screen video, .cover .cv-screen img { width: 100%; height: 100%; object-fit: cover; display: block; position: absolute; inset: 0; }
+.cover .cv-title { font-family: var(--f-display); font-weight: 800; font-size: clamp(15px, calc(var(--cover-h) * .056), 19px); line-height: 1.3; text-wrap: balance; text-shadow: 0 1px 0 rgba(0,0,0,.35); }
+.cover .cv-sum { font-size: 12px; line-height: 1.55; color: rgba(251,244,226,.85); display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+.cover .cv-foot { margin-top: auto; display: flex; justify-content: space-between; align-items: flex-end; gap: 6px; font-size: 11px; color: rgba(251,244,226,.8); }
+.cover .cv-foot > span:first-child { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.shelf.covers.hrow { flex-wrap: nowrap; overflow-x: auto; scroll-snap-type: x proximity; scrollbar-color: var(--gold) transparent; }
+.shelf.covers.hrow .slot { scroll-snap-align: start; }
+.cover .stamp { width: 30px; height: 30px; border-radius: 50%; display: grid; place-items: center; border: 2px solid var(--gold); color: var(--gold); font-family: var(--f-display); font-weight: 800; font-size: 15px; flex: none; overflow: hidden; }
+.cover .stamp img { width: 100%; height: 100%; object-fit: cover; }
+.cover.soon { filter: saturate(.55) brightness(.85); }
+@media (max-width: 560px) { .shelf.covers { gap: 0 8px; padding: 0 6px; } .cover { width: calc((100vw - 92px) / 2); max-width: calc(var(--cover-h) * .72); padding: 10px 10px 10px 14px; } .cover .cv-sum { -webkit-line-clamp: 2; } }
+.cover .ghostc { display: none; }
+.ghost.c { width: calc(var(--cover-h) * .6); height: calc(var(--cover-h) - 6px); writing-mode: horizontal-tb; letter-spacing: .2em; }
+@media (max-width: 560px) { .ghost.c { width: calc((100vw - 92px) / 2); } }
+@media (prefers-reduced-motion: reduce) { .cover { transition: none; transform: none; } }
+.book { --c: #555; position: relative; display: flex; flex-direction: column; align-items: center; justify-content: space-between; gap: 6px;
+  width: var(--w, 60px); height: var(--h, 240px); padding: 12px 0 12px; border: 0; border-radius: 3px 3px 2px 2px; cursor: pointer; color: #f7f1e1;
+  background: linear-gradient(90deg, rgba(0,0,0,.28), rgba(255,255,255,.10) 14%, rgba(0,0,0,0) 30%, rgba(0,0,0,0) 78%, rgba(0,0,0,.30)), var(--c);
+  box-shadow: inset 0 0 0 1px rgba(0,0,0,.25), 2px 0 0 rgba(0,0,0,.18);
+  transition: transform .22s cubic-bezier(.3,1.4,.5,1), box-shadow .2s; transform-origin: 50% 100%; }
+.book::before, .book::after { content: ""; position: absolute; left: 6px; right: 6px; height: 2px; background: var(--gold); opacity: .8; }
+.book::before { top: 32px; } .book::after { bottom: 54px; }
+.book:hover, .book:focus-visible { transform: translateY(-14px); box-shadow: inset 0 0 0 1px rgba(0,0,0,.25), 6px 10px 14px rgba(0,0,0,.35); z-index: 2; }
+.book .vol { font-family: var(--f-display); font-weight: 600; font-size: 11px; letter-spacing: .05em; color: var(--gold); white-space: nowrap; }
+.book .ttl { writing-mode: vertical-rl; text-orientation: upright; font-family: var(--f-display); font-weight: 800; letter-spacing: .1em; line-height: 1.15; color: #fbf4e2; text-shadow: 0 1px 0 rgba(0,0,0,.35); flex: 1; display: flex; align-items: center; overflow: hidden; padding: 10px 0 8px; }
+.book .stamp { width: 34px; height: 34px; border-radius: 50%; display: grid; place-items: center; border: 2px solid var(--gold); color: var(--gold); font-family: var(--f-display); font-weight: 800; font-size: 17px; line-height: 1; overflow: hidden; }
+.book .stamp img { width: 100%; height: 100%; object-fit: cover; }
+.book.xthin { padding: 8px 0; }
+.book.xthin::before, .book.xthin::after { left: 3px; right: 3px; height: 1px; }
+.book.xthin::before { top: 26px; } .book.xthin::after { bottom: 36px; }
+.book.xthin .vol { font-size: 10px; letter-spacing: 0; }
+.book.xthin .ttl { letter-spacing: .02em; padding: 8px 0 6px; }
+.book.xthin .stamp { width: 20px; height: 20px; border-width: 1px; font-size: 11px; }
+.book.xthin .ribbon { font-size: 7px; letter-spacing: 0; height: 11px; line-height: 11px; }
+.book .ribbon { top: 0; left: 0; right: 0; padding: 0; height: 13px; line-height: 13px; font-size: 9px; text-align: center; clip-path: none; border-radius: 3px 3px 0 0; letter-spacing: .1em; }
+.book:has(.ribbon) { padding-top: 16px; }
+.book.xthin:has(.ribbon) { padding-top: 14px; } .book.xthin:has(.ribbon)::before { top: 30px; }
+.ribbon { position: absolute; top: -6px; right: 6px; background: var(--accent); color: var(--on-accent); font-size: 10px; font-weight: 700; padding: 2px 5px 6px; clip-path: polygon(0 0,100% 0,100% 100%,50% 78%,0 100%); letter-spacing: .05em; }
+.book.soon { filter: saturate(.55) brightness(.85); }
+.ghost { width: 54px; height: calc(var(--book-h) * .9); border: 2px dashed rgba(216,181,102,.45); border-radius: 3px; display: flex; align-items: center; justify-content: center; writing-mode: vertical-rl; color: rgba(241,230,207,.6); font-family: var(--f-display); font-size: 14px; letter-spacing: .3em; margin-left: 6px; }
+.empty { color: #f1e6cf; padding: 60px 10px 80px; text-align: center; width: 100%; }
+.empty b { font-family: var(--f-display); font-size: 20px; display: block; }
+
+.shelfhead { display: flex; align-items: baseline; gap: 10px; margin: 26px 0 8px; font-family: var(--f-display); font-weight: 800; font-size: 19px; }
+.shelfhead:first-child { margin-top: 0; }
+.shelfhead small { font-family: var(--f-body); font-weight: 400; font-size: 13px; color: var(--muted); }
+.thgrid { display: grid; grid-template-columns: 1fr minmax(0, 210px); gap: 8px 12px; align-items: center; }
+.thgrid .lbl { min-width: 0; overflow-wrap: anywhere; }
+.thgrid .lbl small { color: var(--muted); font-size: 12px; margin-left: 6px; }
+.thgrid select { border: 1px solid var(--panel-line); background: var(--field); border-radius: 7px; padding: 6px 8px; width: 100%; }
+.thgrid h3 { grid-column: 1 / -1; margin: 10px 0 0; font-size: 14px; }
+.foot { margin-top: 28px; font-size: 13px; color: var(--muted); max-width: 60em; }
+.foot code { background: var(--panel); border: 1px solid var(--panel-line); border-radius: 4px; padding: 0 4px; }
+
+/* 1冊を開いたところ */
+.veil { position: fixed; inset: 0; background: var(--veil); display: grid; place-items: center; z-index: 20;
+  padding: max(16px, env(safe-area-inset-top, 0px)) max(16px, env(safe-area-inset-right, 0px)) max(16px, env(safe-area-inset-bottom, 0px)) max(16px, env(safe-area-inset-left, 0px)); }
+.open { position: relative; width: min(920px, 100%); max-height: 100%; overflow: auto; background: var(--panel); border-radius: 6px 12px 12px 6px; box-shadow: 0 20px 60px rgba(0,0,0,.4);
+  display: grid; grid-template-columns: 14px minmax(0, 1.25fr) minmax(0, 1fr); animation: pull .28s cubic-bezier(.2,1.2,.4,1); }
+@keyframes pull { from { transform: translateY(24px) scale(.97); opacity: 0; } }
+@media (prefers-reduced-motion: reduce) { .open { animation: none; } .book { transition: none; } }
+.open .edge { background: var(--c); border-radius: 6px 0 0 6px; }
+.open .media { padding: 18px; display: flex; flex-direction: column; gap: 8px; min-width: 0; }
+.screen { position: relative; width: 100%; max-width: 100%; aspect-ratio: 16 / 10; background: #111; border-radius: 8px; overflow: hidden; box-shadow: inset 0 0 0 1px rgba(255,255,255,.06); }
+.screen video, .screen img { width: 100%; height: 100%; object-fit: cover; display: block; }
+.screen .ph { position: absolute; inset: 0; display: grid; place-items: center; background: var(--c); color: var(--gold); font-family: var(--f-display); font-size: 64px; font-weight: 800; }
+.media .cap { font-size: 12px; color: var(--muted); margin: 0; }
+.open .info { padding: 22px 22px 22px 6px; display: flex; flex-direction: column; gap: 10px; min-width: 0; }
+.open .kicker { font-size: 13px; color: var(--muted); display: flex; flex-wrap: wrap; gap: 4px 10px; }
+.open h2 { margin: 0; font-family: var(--f-display); font-weight: 800; font-size: 28px; line-height: 1.3; text-wrap: balance; }
+.open .sum { margin: 0; font-weight: 700; }
+.open .desc { margin: 0; color: var(--muted); }
+.tags { display: flex; flex-wrap: wrap; gap: 6px; }
+.tag { font-size: 12px; border: 1px solid var(--panel-line); border-radius: 999px; padding: 1px 9px; background: transparent; cursor: pointer; color: var(--ink); }
+.tag:hover { border-color: var(--accent); }
+.plays { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 4px; }
+.play { display: inline-flex; align-items: center; gap: 6px; text-decoration: none; background: var(--accent); color: var(--on-accent); padding: 9px 16px; border-radius: 8px; font-weight: 700; }
+.play.sub { background: transparent; color: var(--ink); border: 1px solid var(--panel-line); font-weight: 500; }
+.play[aria-disabled="true"] { background: var(--panel-line); color: var(--muted); pointer-events: none; }
+.x { position: absolute; top: 8px; right: 8px; width: 36px; height: 36px; border-radius: 50%; border: 1px solid var(--panel-line); background: var(--panel); cursor: pointer; font-size: 18px; line-height: 1; z-index: 2; }
+@media (max-width: 720px) { .open { grid-template-columns: 10px minmax(0, 1fr); } .open .edge { grid-row: 1 / span 2; } .open .info { grid-column: 2; padding: 0 18px 20px; } .open .media { padding: 16px 16px 4px; } .open h2 { font-size: 23px; } }
+
+/* 設定 */
+.drawer { position: fixed; top: 0; right: 0; bottom: 0; width: min(560px, 100%); background: var(--panel); z-index: 30; box-shadow: -10px 0 40px rgba(0,0,0,.3); display: flex; flex-direction: column;
+  padding-top: env(safe-area-inset-top, 0px); padding-bottom: env(safe-area-inset-bottom, 0px); padding-right: env(safe-area-inset-right, 0px); }
+.drawer header { display: flex; align-items: center; gap: 10px; padding: 14px 18px; border-bottom: 1px solid var(--panel-line); }
+.drawer header h2 { margin: 0; font-family: var(--f-display); font-size: 20px; flex: 1; }
+.tabs { display: flex; gap: 4px; padding: 10px 18px 0; border-bottom: 1px solid var(--panel-line); overflow-x: auto; }
+.tab { border: 0; background: none; padding: 8px 12px; border-bottom: 3px solid transparent; cursor: pointer; white-space: nowrap; }
+.tab[aria-selected="true"] { border-bottom-color: var(--accent); font-weight: 700; }
+.pane { padding: 16px 18px 28px; overflow: auto; flex: 1; display: flex; flex-direction: column; gap: 14px; }
+.hint { font-size: 13px; color: var(--muted); margin: 0; }
+.row { display: grid; grid-template-columns: 30px 1fr auto; gap: 10px; align-items: center; padding: 8px 10px; border: 1px solid var(--panel-line); border-radius: 8px; }
+.row .dot { width: 26px; height: 34px; border-radius: 3px; background: var(--c); color: var(--gold); display: grid; place-items: center; font-family: var(--f-display); font-weight: 800; font-size: 13px; }
+.row .nm { min-width: 0; overflow-wrap: anywhere; }
+.row .nm small { display: block; color: var(--muted); font-size: 12px; }
+.row .acts { display: flex; gap: 4px; flex-wrap: wrap; justify-content: flex-end; }
+.btn { border: 1px solid var(--panel-line); background: var(--field); border-radius: 7px; padding: 5px 10px; cursor: pointer; font-size: 13px; }
+.btn:hover { border-color: var(--accent); }
+.btn.primary { background: var(--accent); border-color: var(--accent); color: var(--on-accent); font-weight: 700; }
+.btn.danger { color: #b3261e; }
+.form { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+.form .full { grid-column: 1 / -1; }
+.field { display: flex; flex-direction: column; gap: 4px; min-width: 0; }
+.field span { font-size: 12px; color: var(--muted); }
+.field input, .field select, .field textarea { border: 1px solid var(--panel-line); background: var(--field); border-radius: 7px; padding: 7px 9px; width: 100%; min-width: 0; }
+.field textarea { min-height: 70px; resize: vertical; }
+.field input[type="color"] { padding: 2px; height: 38px; }
+.links { display: flex; flex-direction: column; gap: 6px; }
+.linkrow { display: grid; grid-template-columns: 110px 1fr auto; gap: 6px; }
+.fonts { border: 0; padding: 0; margin: 0; }
+.fonts legend { font-size: 12px; color: var(--muted); padding: 0; margin-bottom: 6px; }
+.fontgrid { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 8px; }
+.fontcard { position: relative; display: flex; flex-direction: column; gap: 2px; border: 1px solid var(--panel-line); border-radius: 8px; padding: 10px 10px 8px; cursor: pointer; background: var(--field); }
+.fontcard input { position: absolute; opacity: 0; inset: 0; margin: 0; cursor: pointer; }
+.fontcard .fs { font-size: 20px; line-height: 1.3; font-weight: 700; }
+.fontcard .fn { font-size: 11px; color: var(--muted); }
+.fontcard:has(input:checked) { border-color: var(--accent); box-shadow: inset 0 0 0 2px var(--accent); }
+.fontcard:has(input:focus-visible) { outline: 3px solid var(--accent); outline-offset: 2px; }
+.status { font-size: 13px; min-height: 1.4em; color: var(--accent); margin: 0; }
+textarea.json { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 12px; min-height: 180px; width: 100%; border: 1px solid var(--panel-line); background: var(--field); border-radius: 7px; padding: 8px; }
+.confirm { display: inline-flex; gap: 6px; align-items: center; font-size: 13px; }
+@media (max-width: 560px) { .form { grid-template-columns: 1fr; } .linkrow { grid-template-columns: 1fr; } .row { grid-template-columns: 30px 1fr; } .row .acts { grid-column: 1 / -1; justify-content: flex-start; } }
+/* しおり：本の上から紙のしおりが少しはみ出す */
+.mark { position: absolute; z-index: 3; top: -13px; left: 24%; width: 9px; height: 19px; background: #f1e3c2; box-shadow: 0 1px 2px rgba(0,0,0,.35); clip-path: polygon(0 0, 100% 0, 100% 100%, 50% 78%, 0 100%); pointer-events: none; }
+.book.xthin .mark { width: 7px; left: 18%; }
+.cover .mark { top: -10px; left: 22px; width: 12px; height: 26px; }
+.marktoggle[aria-pressed="true"] { background: #f1e3c2; color: #3a2a12; border-color: #c9b07a; }
+.notice.warn { border-style: solid; border-color: #c0392b; }
+.warnline { color: #b03a2e; font-size: 13px; }
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) .warnline { color: #f08a7e; } }
+:root[data-theme="dark"] .warnline { color: #f08a7e; }
+.sr-only { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
+</style>
+
+</head>
+<body>
+<div class="wrap">
+  <header class="top">
+    <h1 id="siteTitle">本棚</h1>
+    <button class="gear" id="openSettings" type="button" aria-haspopup="dialog" hidden>⚙ 本棚の設定<span class="adminbadge">管理者</span></button>
+    <p id="siteSub"></p>
+    <div class="owner" id="owner"></div>
+  </header>
+
+  <div class="tools">
+    <label class="search" for="q"><span aria-hidden="true">🔍</span><input id="q" type="search" placeholder="タイトル・説明・タグでさがす" aria-label="本を検索" autocomplete="off"><kbd aria-hidden="true">/</kbd></label>
+    <div class="chips" id="chips" role="group" aria-label="ジャンル"></div>
+    <select class="sort" id="sort" aria-label="並び順"><option value="vol">巻の順</option><option value="new">新しい順</option><option value="title">タイトル順</option></select>
+  </div>
+  <div class="notice warn" id="loadNotice" role="alert" hidden></div>
+  <div class="notice warn" id="saveNotice" role="alert" hidden>このブラウザに保存できませんでした（保存できる容量をこえたか、保存が止められています）。ページを閉じる前に、設定の「バックアップ」タブから書き出してください。</div>
+  <div class="notice" id="localNotice" hidden>この本棚は、このブラウザで編集中の内容です（公開ページにはまだ反映されていません）。<button class="linkbtn" id="noticeReset" type="button">元の本棚に戻す</button></div>
+  <div class="countbar"><p class="count" id="count" role="status" aria-live="polite"></p>
+    <details class="viewmenu" id="viewmenu"><summary><span aria-hidden="true">▤</span> 表示の設定</summary>
+      <div class="vm-panel">
+        <fieldset><legend>見せ方</legend><div class="seg"><label><input type="radio" name="view" id="vSpine" value="spine"><span>背表紙を並べる</span></label><label><input type="radio" name="view" id="vCover" value="cover"><span>表紙を見せる</span></label></div></fieldset>
+        <fieldset><legend>棚の分け方</legend><div class="seg"><label><input type="radio" name="layout" id="lOne" value="one"><span>1つの棚</span></label><label><input type="radio" name="layout" id="lGenre" value="genre"><span>ジャンルごと</span></label></div></fieldset>
+      </div></details></div>
+  <div id="shelves"></div>
+
+  <p class="foot" id="foot">背表紙を選ぶと、動きのプレビューと「遊ぶ」ボタンが出ます。この本棚は <code>shelf.json</code> の中身で作られていて、同じ仕組みで自分の作品の本棚も作れます。</p>
+</div>
+
+<div class="veil" id="veil" hidden></div>
+<aside class="drawer" id="drawer" hidden role="dialog" aria-modal="true" aria-labelledby="drawerTitle"></aside>
+
+<script type="application/json" id="defaultShelf">{"format": "app-shelf", "version": 1, "site": {"title": "AIでつくってためそ 本棚", "subtitle": "AIに作らせたアプリを、1冊ずつ並べています。背表紙を選ぶと、動きのプレビューと遊ぶボタンが出ます。", "owner": "AIでつくってためそ（うーたん）", "ownerUrl": "https://www.youtube.com/@ai-tsukuttetameso", "accent": "#b5452f", "volumeLabel": "第{n}回"}, "genres": [{"id": "tool", "name": "道具"}, {"id": "game", "name": "ゲーム"}, {"id": "sim", "name": "シミュレーション"}], "apps": [{"id": "editor", "volume": 1, "title": "メモ帳", "genre": "tool", "icon": "メ", "color": "#2f5d62", "summary": "パソコンでおなじみのメモ帳を、ChatGPTとClaudeが同じ指示で作り比べ。", "description": "検索と置換、フォント変更、自動保存まで。昔のパソコンで作ったファイルを開くと、片方は文字化けしました。書いた内容はブラウザの中にだけ保存されます。", "tags": ["作り比べ", "メモ帳", "自動保存", "文字化け"], "madeBy": "ChatGPT と Claude の作り比べ", "date": "2026-10-17", "preview": "previews/editor.mp4", "poster": "previews/editor.jpg", "links": [{"label": "ChatGPT版", "url": "https://ai-tsukuttetameso.github.io/tsukutte-tameso-editor-chatgpt/"}, {"label": "Claude版", "url": "https://ai-tsukuttetameso.github.io/tsukutte-tameso-editor-claude/"}], "video": "https://www.youtube.com/watch?v=Ed3xsyAQKlw", "frames": ["previews/editor-1.jpg", "previews/editor-2.jpg", "previews/editor-3.jpg", "previews/editor-4.jpg", "previews/editor-5.jpg", "previews/editor-6.jpg"]}, {"id": "paint", "volume": 2, "title": "お絵描きソフト", "genre": "tool", "icon": "絵", "color": "#7a3b52", "summary": "ペン、図形、塗りつぶし、PNG保存。昔ながらのお絵描きソフトを作り比べ。", "description": "写真の空を塗りつぶすと、片方は1ドットしか塗れませんでした。描いた絵や開いた画像は、ブラウザの中だけで処理されます。", "tags": ["作り比べ", "ペイント", "塗りつぶし"], "madeBy": "ChatGPT と Claude の作り比べ", "date": "2026-10-17", "preview": "previews/paint.mp4", "poster": "previews/paint.jpg", "links": [{"label": "ChatGPT版", "url": "https://ai-tsukuttetameso.github.io/tsukutte-tameso-paint-chatgpt/"}, {"label": "Claude版", "url": "https://ai-tsukuttetameso.github.io/tsukutte-tameso-paint-claude/"}], "video": "https://www.youtube.com/watch?v=cE8R2qJv-Uo", "frames": ["previews/paint-1.jpg", "previews/paint-2.jpg", "previews/paint-3.jpg", "previews/paint-4.jpg", "previews/paint-5.jpg", "previews/paint-6.jpg"]}, {"id": "calculator", "volume": 3, "title": "電卓", "genre": "tool", "icon": "算", "color": "#344a6e", "summary": "四則演算から関数電卓まで。0.1＋0.2−0.3で差がついた電卓。", "description": "メモリー、計算履歴、キーボード操作つき。片方は「0.1＋0.2−0.3」が0になりませんでした。計算はブラウザの中だけで行います。", "tags": ["作り比べ", "電卓", "関数電卓", "小数の計算"], "madeBy": "ChatGPT と Claude の作り比べ", "date": "2026-10-18", "preview": "previews/calculator.mp4", "poster": "previews/calculator.jpg", "links": [{"label": "ChatGPT版", "url": "https://ai-tsukuttetameso.github.io/tsukutte-tameso-calculator-chatgpt/"}, {"label": "Claude版", "url": "https://ai-tsukuttetameso.github.io/tsukutte-tameso-calculator-claude/"}], "video": "https://www.youtube.com/watch?v=PA30sf_ypFE", "frames": ["previews/calculator-1.jpg", "previews/calculator-2.jpg", "previews/calculator-3.jpg", "previews/calculator-4.jpg", "previews/calculator-5.jpg", "previews/calculator-6.jpg"]}, {"id": "minesweeper", "volume": 4, "title": "地雷さがし", "genre": "game", "icon": "雷", "color": "#5c6b2e", "summary": "おなじみのマインスイーパーに「AIにおまかせ」と隠し機能を足したゲーム。", "description": "初級・中級・上級、旗、ベストタイム。AIに解かせると、解き方にそれぞれの性格が出ました。隠し機能の答えは本編で。", "tags": ["作り比べ", "マインスイーパー", "AIにおまかせ", "隠し機能"], "madeBy": "ChatGPT と Claude の作り比べ", "date": "2026-10-20", "preview": "previews/minesweeper.mp4", "poster": "previews/minesweeper.jpg", "links": [{"label": "ChatGPT版", "url": "https://ai-tsukuttetameso.github.io/tsukutte-tameso-minesweeper-chatgpt/"}, {"label": "Claude版", "url": "https://ai-tsukuttetameso.github.io/tsukutte-tameso-minesweeper-claude/"}], "video": "https://www.youtube.com/watch?v=UulKURHyZHk", "frames": ["previews/minesweeper-1.jpg", "previews/minesweeper-2.jpg", "previews/minesweeper-3.jpg", "previews/minesweeper-4.jpg", "previews/minesweeper-5.jpg", "previews/minesweeper-6.jpg"]}, {"id": "money-sim", "volume": 5, "title": "資産人生シミュレーター", "genre": "sim", "icon": "資", "color": "#8a6a2a", "summary": "自分のお金の一生を、1970〜2024年の本当の相場で生きてみるゲーム。", "description": "暴落が来たら時間が止まって、売るか、耐えるか、買い増すかを選びます。タワーマンションやスポーツカーも試しに買えます。ゲームの結果で、投資の助言ではありません（ベータ版）。", "tags": ["Claude", "資産", "暴落", "ベータ版"], "madeBy": "Claude だけで作成", "date": "2026-10-21", "preview": "previews/money-sim.mp4", "poster": "previews/money-sim.jpg", "links": [{"label": "遊ぶ", "url": "https://ai-tsukuttetameso.github.io/tsukutte-tameso-money-sim/"}], "video": "https://www.youtube.com/watch?v=zRn96cyslU0", "frames": ["previews/money-sim-1.jpg", "previews/money-sim-2.jpg", "previews/money-sim-3.jpg", "previews/money-sim-4.jpg", "previews/money-sim-5.jpg", "previews/money-sim-6.jpg"]}, {"id": "mamachari-tokaido", "volume": 6, "title": "ママチャリ東海道", "genre": "game", "icon": "輪", "color": "#3d6b8f", "summary": "名古屋からママチャリで東京へ。ガラケー時代の自転車ジャンプゲームを作り比べ。", "description": "タップでジャンプ、空中でもう一度押すと2段ジャンプ。ご当地の景色、夜道、ゴーストとの並走、回転ジャンプつき。東京まで行けるかな。", "tags": ["作り比べ", "携帯ゲーム風", "横スクロール", "ワンボタン"], "madeBy": "ChatGPT と Claude の作り比べ", "date": "2026-10-22", "preview": "previews/mamachari-tokaido.mp4", "poster": "previews/mamachari-tokaido.jpg", "links": [{"label": "ChatGPT版", "url": "https://ai-tsukuttetameso.github.io/tsukutte-tameso-mamachari-tokaido-chatgpt/"}, {"label": "Claude版", "url": "https://ai-tsukuttetameso.github.io/tsukutte-tameso-mamachari-tokaido-claude/"}], "video": "https://www.youtube.com/watch?v=DGe0S7VqDJE", "frames": ["previews/mamachari-tokaido-1.jpg", "previews/mamachari-tokaido-2.jpg", "previews/mamachari-tokaido-3.jpg", "previews/mamachari-tokaido-4.jpg", "previews/mamachari-tokaido-5.jpg", "previews/mamachari-tokaido-6.jpg"]}, {"id": "dopagaki-gomoku", "volume": 7, "title": "ドパガキ五目", "genre": "game", "icon": "五", "color": "#6b3a8a", "summary": "相手の番を待たなくていい五目並べ。連打すると相手の石が暴発します。", "description": "CPU対戦と、1台で遊べる2人対戦。連打10回で暴発、20回で割り込み。最後に「ドパガキ度」を診断します。初めての人は「はじめて」モードからどうぞ。", "tags": ["共同制作", "五目並べ", "2人対戦", "連打"], "madeBy": "ChatGPT と Claude の共同制作", "date": "2026-10-24", "preview": "previews/dopagaki-gomoku.mp4", "poster": "previews/dopagaki-gomoku.jpg", "links": [{"label": "遊ぶ", "url": "https://ai-tsukuttetameso.github.io/tsukutte-tameso-dopagaki-gomoku/"}], "video": "https://www.youtube.com/watch?v=kDFojCdpZDk", "frames": ["previews/dopagaki-gomoku-1.jpg", "previews/dopagaki-gomoku-2.jpg", "previews/dopagaki-gomoku-3.jpg", "previews/dopagaki-gomoku-4.jpg", "previews/dopagaki-gomoku-5.jpg", "previews/dopagaki-gomoku-6.jpg"]}, {"id": "shachiku-typing", "volume": 8, "title": "社畜タイピング", "genre": "game", "icon": "社", "color": "#9a4a1f", "summary": "会社の1日をタイピングでこなして、定時退社をめざすゲーム。", "description": "遅刻の言い訳から会議まで、仕事を打ち切って退社。最後に「何時代の社畜か」を称号で診断します。じっくり遊べる「ふつう」と短い「時短」があります。", "tags": ["共同制作", "タイピング", "称号診断"], "madeBy": "ChatGPT と Claude の共同制作", "date": "2026-10-25", "releaseAt": "2026-10-25T19:00:00+09:00", "preview": "previews/shachiku-typing.mp4", "poster": "previews/shachiku-typing.jpg", "links": [{"label": "遊ぶ", "url": "https://ai-tsukuttetameso.github.io/tsukutte-tameso-shachiku-typing/"}], "video": "https://www.youtube.com/watch?v=R4XNauY1FFA", "frames": ["previews/shachiku-typing-1.jpg", "previews/shachiku-typing-2.jpg", "previews/shachiku-typing-3.jpg", "previews/shachiku-typing-4.jpg", "previews/shachiku-typing-5.jpg", "previews/shachiku-typing-6.jpg"]}]}</script>
+<script>
+(() => {
+  const $ = (s, r = document) => r.querySelector(s);
+  const esc = (s) => String(s ?? '').replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+  const KEY = 'appShelf.config.v1', UIKEY = 'appShelf.ui.v1';
+  const ADMIN = document.documentElement.dataset.shelfMode === 'admin' || window.SHELF_MODE === 'admin';
+  const store = { get(k) { try { return localStorage.getItem(k); } catch (e) { return null; } }, set(k, v) { try { localStorage.setItem(k, v); return true; } catch (e) { return false; } }, del(k) { try { localStorage.removeItem(k); } catch (e) {} } };
+
+  // ---- 設定ファイルの読み込みと整形 ----
+  let base = null, cfg = null, edited = false;
+  const ui = Object.assign({ genre: 'all', sort: 'vol', layout: 'one', view: 'spine' }, safeParse(store.get(UIKEY)) || {});
+  function safeParse(s) { try { return s ? JSON.parse(s) : null; } catch (e) { return null; } }
+  const slug = (s) => String(s || '').trim().toLowerCase().replace(/[^a-z0-9\-_]+/g, '-').replace(/^-+|-+$/g, '') || ('app-' + Math.random().toString(36).slice(2, 7));
+  const pad2 = (n) => String(n).padStart(2, '0');
+  // 日付だけ（2026-10-17）は、見ている人の地域に関係なく「その年月日」として扱う
+  const ymd = (s) => { const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(String(s || '').trim()); return m ? { y: +m[1], m: +m[2], d: +m[3] } : null; };
+  const todayYmd = () => { const d = new Date(); return `${d.getFullYear()}-${pad2(d.getMonth() + 1)}-${pad2(d.getDate())}`; };
+  // 公開予定の日時は、Z か +09:00 のような時差つきのときだけ有効（地域で解釈が変わらないように）
+  const HAS_TZ = /(Z|[+-]\d{2}:?\d{2})$/i;
+  const relTime = (s) => { s = String(s || '').trim(); if (!s || !HAS_TZ.test(s)) return NaN; return Date.parse(s); };
+  // 入力欄（datetime-local）用：この端末の時刻で「YYYY-MM-DDTHH:MM」
+  const toLocalInput = (s) => { const t = relTime(s); if (isNaN(t)) return ''; const d = new Date(t); return `${d.getFullYear()}-${pad2(d.getMonth() + 1)}-${pad2(d.getDate())}T${pad2(d.getHours())}:${pad2(d.getMinutes())}`; };
+  // 入力欄の値を、この端末の時差つきの文字列にする（例：2026-10-25T19:00:00+09:00）
+  const fromLocalInput = (v) => { if (!v) return ''; const d = new Date(v); if (isNaN(d)) return ''; const off = -d.getTimezoneOffset(), sg = off >= 0 ? '+' : '-', a = Math.abs(off);
+    return `${d.getFullYear()}-${pad2(d.getMonth() + 1)}-${pad2(d.getDate())}T${pad2(d.getHours())}:${pad2(d.getMinutes())}:00${sg}${pad2(Math.floor(a / 60))}:${pad2(a % 60)}`; };
+  // リンク先は http / https と、同じサイト内の相対パスだけ。画像・動画は data:image / data:video も可
+  function safeUrl(u, media = false) {
+    u = String(u || '').trim(); if (!u) return '';
+    if (/[\u0000-\u001f]/.test(u)) return '';
+    if (media && /^data:(image|video)\//i.test(u)) return u;
+    if (!/^[a-z][a-z0-9+.\-]*:/i.test(u)) return /^\/\//.test(u) ? '' : u; // 相対パス
+    try { const p = new URL(u).protocol; return p === 'http:' || p === 'https:' ? u : ''; } catch (e) { return ''; }
+  }
+  const str = (v, d = '') => (typeof v === 'string' ? v : typeof v === 'number' && isFinite(v) ? String(v) : d);
+  // 本棚まるごとのJSONを確かめる。問題があれば理由の一覧を返す（空なら合格）
+  function checkShelf(raw) {
+    const err = [];
+    if (!raw || typeof raw !== 'object' || Array.isArray(raw)) return ['本棚のJSONは { } で始まる形にしてください。'];
+    if (raw.format != null && raw.format !== 'app-shelf') err.push(`format が「${String(raw.format).slice(0, 30)}」です（app-shelf の本棚ではありません）。`);
+    if (raw.version != null && !(+raw.version >= 1 && +raw.version <= 1)) err.push(`version ${String(raw.version).slice(0, 10)} には対応していません（対応は 1）。`);
+    if (!Array.isArray(raw.apps)) err.push('apps（本の一覧）がありません。');
+    else raw.apps.forEach((a, i) => err.push(...checkBook(a, `${i + 1}冊目`)));
+    if (raw.site != null && (typeof raw.site !== 'object' || Array.isArray(raw.site))) err.push('site は { } の形にしてください。');
+    else if (raw.site) ['title', 'subtitle', 'owner', 'ownerUrl', 'accent', 'volumeLabel'].forEach((k) => { if (raw.site[k] != null && typeof raw.site[k] !== 'string') err.push(`site.${k} は文字で入れてください。`); });
+    if (raw.genres != null && !Array.isArray(raw.genres)) err.push('genres は [ ] の一覧にしてください。');
+    else if (raw.genres) { const seen = new Set(); raw.genres.forEach((g, i) => { if (!g || typeof g !== 'object' || typeof g.name !== 'string' || !g.name.trim()) err.push(`ジャンル${i + 1}つ目に name（名前）がありません。`); else { const id = String(g.id || g.name); if (seen.has(id)) err.push(`ジャンルの id「${id.slice(0, 30)}」が重なっています。`); seen.add(id); } }); }
+    if (Array.isArray(raw.apps)) { const seen = new Set(); raw.apps.forEach((a) => { if (a && a.id != null) { const id = String(a.id); if (seen.has(id)) err.push(`本の id「${id.slice(0, 30)}」が重なっています。`); seen.add(id); } }); }
+    return err.slice(0, 8);
+  }
+  function checkBook(a, where) {
+    const err = [];
+    if (!a || typeof a !== 'object' || Array.isArray(a)) return [`${where}が本の形（{ }）になっていません。`];
+    if (typeof a.title !== 'string' || !a.title.trim()) err.push(`${where}に title（タイトル）がありません。`);
+    ['id', 'summary', 'description', 'genre', 'icon', 'color', 'date', 'releaseAt', 'preview', 'poster', 'video', 'madeBy'].forEach((k) => { if (a[k] != null && typeof a[k] !== 'string' && !(k === 'id' && typeof a[k] === 'number')) err.push(`${where}の ${k} は文字で入れてください。`); });
+    if (a.links != null && !Array.isArray(a.links)) err.push(`${where}の links は [ ] の一覧にしてください。`);
+    // releaseAt の書き方の誤りは、読み込みは止めずに、その本だけ公開を保留して画面で知らせる
+    return err;
+  }
+  const TH = ['auto', 'xthin', 'thin', 'normal', 'thick'];
+  const TH_NAME = { inherit: '', auto: '自動（タイトルの長さで決める）', xthin: '極細', thin: '細い', normal: 'ふつう', thick: '太い' };
+  // 文字の雰囲気（Google Fonts の組み合わせ）
+  const KG = '"Zen Kaku Gothic New", "Hiragino Sans", "Yu Gothic", sans-serif', ZM = '"Zen Maru Gothic", "Hiragino Maru Gothic ProN", sans-serif', NS = '"Noto Sans JP", "Hiragino Sans", "Yu Gothic", sans-serif';
+  const FONTS = {
+    classic: { name: 'しっかり（明朝）', fam: 'Shippori Mincho B1', css: 'Shippori+Mincho+B1:wght@600;800&family=Zen+Kaku+Gothic+New:wght@400;500;700', display: '"Shippori Mincho B1", "Hiragino Mincho ProN", "Yu Mincho", serif', body: KG },
+    elegant: { name: '上品（細めの明朝）', fam: 'Noto Serif JP', css: 'Noto+Serif+JP:wght@500;700;900&family=Noto+Sans+JP:wght@400;500;700', display: '"Noto Serif JP", "Hiragino Mincho ProN", serif', body: NS },
+    old: { name: '古い本（昔の明朝）', fam: 'Zen Old Mincho', css: 'Zen+Old+Mincho:wght@600;900&family=Zen+Kaku+Gothic+New:wght@400;500;700', display: '"Zen Old Mincho", "Hiragino Mincho ProN", serif', body: KG },
+    clean: { name: 'すっきり（ゴシック）', fam: 'Noto Sans JP', css: 'Noto+Sans+JP:wght@400;500;700;900', display: NS, body: NS },
+    ud: { name: '読みやすさ重視（UD）', fam: 'BIZ UDPGothic', css: 'BIZ+UDPGothic:wght@400;700', display: '"BIZ UDPGothic", "Hiragino Sans", sans-serif', body: '"BIZ UDPGothic", "Hiragino Sans", sans-serif' },
+    pop: { name: 'ポップ（丸ゴシック）', fam: 'M PLUS Rounded 1c', css: 'M+PLUS+Rounded+1c:wght@400;500;700;800', display: '"M PLUS Rounded 1c", "Hiragino Maru Gothic ProN", sans-serif', body: '"M PLUS Rounded 1c", "Hiragino Maru Gothic ProN", sans-serif' },
+    soft: { name: 'やさしい（丸）', fam: 'Zen Maru Gothic', css: 'Zen+Maru+Gothic:wght@400;500;700;900', display: ZM, body: ZM },
+    kawaii: { name: 'かわいい', fam: 'Hachi Maru Pop', css: 'Hachi+Maru+Pop&family=Zen+Maru+Gothic:wght@400;500;700', display: '"Hachi Maru Pop", "Hiragino Maru Gothic ProN", sans-serif', body: ZM },
+    hand: { name: '手書き風（ていねい）', fam: 'Klee One', css: 'Klee+One:wght@400;600&family=Zen+Maru+Gothic:wght@400;500;700', display: '"Klee One", "Hiragino Mincho ProN", serif', body: ZM },
+    pen: { name: 'ペン書き（ラフ）', fam: 'Yomogi', css: 'Yomogi&family=Zen+Maru+Gothic:wght@400;500;700', display: '"Yomogi", "Hiragino Maru Gothic ProN", sans-serif', body: ZM },
+    brush: { name: '筆文字', fam: 'Yuji Syuku', css: 'Yuji+Syuku&family=Zen+Kaku+Gothic+New:wght@400;500;700', display: '"Yuji Syuku", "Hiragino Mincho ProN", serif', body: KG },
+    bold: { name: '力強い（太字）', fam: 'Dela Gothic One', css: 'Dela+Gothic+One&family=Noto+Sans+JP:wght@400;500;700', display: '"Dela Gothic One", "Hiragino Sans", sans-serif', body: NS },
+    showa: { name: '昭和レトロ', fam: 'RocknRoll One', css: 'RocknRoll+One&family=Zen+Kaku+Gothic+New:wght@400;500;700', display: '"RocknRoll One", "Hiragino Sans", sans-serif', body: KG },
+    retro: { name: 'ゲーム風（ドット文字）', fam: 'DotGothic16', css: 'DotGothic16&family=Zen+Kaku+Gothic+New:wght@400;500;700', display: '"DotGothic16", monospace', body: KG },
+  };
+  const FONT_SAMPLE = 'AIでつくってためそ本棚第回メモ帳Aa123';
+
+  function loadFontPreviews() {
+    if (document.getElementById('fontPreview')) return;
+    const fams = [...new Set(Object.values(FONTS).map((f) => f.fam))].map((n) => 'family=' + n.replace(/ /g, '+')).join('&');
+    const l = document.createElement('link'); l.id = 'fontPreview'; l.rel = 'stylesheet'; l.href = `https://fonts.googleapis.com/css2?${fams}&text=${encodeURIComponent('本棚メモ帳Aa')}&display=swap`; document.head.appendChild(l);
+  }
+  function applyFont(key) {
+    const f = FONTS[key] || FONTS.classic, root = document.documentElement;
+    root.style.setProperty('--f-display', f.display); root.style.setProperty('--f-body', f.body);
+    const link = document.getElementById('fontLink'), href = `https://fonts.googleapis.com/css2?family=${f.css}&display=swap`;
+    if (link && link.getAttribute('href') !== href) link.setAttribute('href', href);
+  }
+  const PALETTE = ['#2f5d62', '#7a3b52', '#344a6e', '#5c6b2e', '#8a6a2a', '#3d6b8f', '#6b3a8a', '#9a4a1f'];
+  // 背表紙の色：本ごとの色か、ジャンルの色でそろえるか
+  function colorOf(a) { if (cfg.site.colorBy === 'genre') { const g = cfg.genres.find((x) => x.id === a.genre); if (g && g.color) return g.color; } return a.color; }
+  // 本 → ジャンル → 全体 の順に、最初に決まっている設定を使う
+  function thickOf(a) { if (TH.includes(a.thickness)) return a.thickness; const g = cfg.genres.find((x) => x.id === a.genre); if (g && TH.includes(g.thickness)) return g.thickness; return cfg.site.thickness || 'auto'; }
+  const thOptions = (cur, inheritLabel) => (inheritLabel ? [['inherit', inheritLabel]] : []).concat(TH.map((v) => [v, TH_NAME[v]])).map(([v, n]) => `<option value="${v}"${cur === v ? ' selected' : ''}>${n}</option>`).join('');
+  const flipHtml = (a, lazy) => `<span class="flip" data-flip>${a.frames.map((f, i) => `<img src="${esc(f)}" alt=""${i ? '' : ' class="on"'}${lazy ? ' loading="lazy"' : ''}>`).join('')}</span>`;
+  function normalize(raw) {
+    const c = raw && typeof raw === 'object' ? raw : {};
+    const s0 = c.site && typeof c.site === 'object' && !Array.isArray(c.site) ? c.site : {};
+    // 文字の項目は、数字やnullが入っていても壊れないように文字へそろえる
+    const site = { title: str(s0.title, 'わたしの本棚') || 'わたしの本棚', subtitle: str(s0.subtitle), owner: str(s0.owner), ownerUrl: safeUrl(str(s0.ownerUrl)),
+      accent: /^#[0-9a-f]{3,8}$/i.test(str(s0.accent)) ? s0.accent : '#b5452f', volumeLabel: str(s0.volumeLabel, '第{n}回') || '{n}', thickness: s0.thickness, font: s0.font, colorBy: s0.colorBy };
+    if (!FONTS[site.font]) site.font = 'classic';
+    if (!TH.includes(site.thickness)) site.thickness = 'auto';
+    if (site.colorBy !== 'genre') site.colorBy = 'book';
+    const gids = new Set();
+    const genres = Array.isArray(c.genres) ? c.genres.filter((g) => g && typeof g === 'object' && str(g.name).trim()).map((g) => {
+      let id = str(g.id) || slug(str(g.name).normalize('NFKC')); while (gids.has(id)) id += '-2'; gids.add(id);
+      return { id, name: str(g.name).trim(), thickness: TH.includes(g.thickness) ? g.thickness : 'inherit', color: /^#[0-9a-f]{3,8}$/i.test(str(g.color)) ? g.color : '' }; }) : [];
+    const ids = new Set();
+    const apps = (Array.isArray(c.apps) ? c.apps : []).filter((a) => a && typeof a === 'object' && str(a.title).trim()).map((a, i) => {
+      const title = str(a.title).trim();
+      let id = str(a.id) || slug(title); while (ids.has(id)) id += '-2'; ids.add(id);
+      const icon = str(a.icon) || [...title][0];
+      return { id, volume: Number.isFinite(+a.volume) && a.volume !== '' && a.volume !== null ? +a.volume : i + 1, title, genre: str(a.genre), icon: /\.(png|jpe?g|svg|webp|gif)$|^data:/i.test(icon) ? (safeUrl(icon, true) || [...title][0]) : icon,
+        color: /^#[0-9a-f]{3,8}$/i.test(str(a.color)) ? a.color : '#4a5a52', summary: str(a.summary), description: str(a.description),
+        tags: Array.isArray(a.tags) ? a.tags.map((t) => str(t)).filter(Boolean) : str(a.tags).split(/[,、]/).map((t) => t.trim()).filter(Boolean),
+        madeBy: str(a.madeBy), thickness: TH.includes(a.thickness) ? a.thickness : 'inherit', date: str(a.date), releaseAt: str(a.releaseAt).trim(), preview: safeUrl(str(a.preview), true), poster: safeUrl(str(a.poster), true),
+        frames: (Array.isArray(a.frames) ? a.frames : str(a.frames).split(/\n+/)).map((f) => safeUrl(str(f), true)).filter(Boolean),
+        links: (Array.isArray(a.links) ? a.links : []).filter((l) => l && typeof l === 'object' && safeUrl(str(l.url))).map((l) => ({ label: str(l.label) || '遊ぶ', url: safeUrl(str(l.url)) })), video: safeUrl(str(a.video)) };
+    });
+    return { format: 'app-shelf', version: 1, site, genres, apps };
+  }
+  async function load() {
+    const embedded = safeParse($('#defaultShelf').textContent);
+    // 画像を中に入れた版（試し見用）は、そのまま使う。ふつうはサイトの shelf.json を読む
+    let loadErr = '';
+    if (embedded && embedded.embedded) base = normalize(embedded);
+    else {
+      try {
+        const r = await fetch('shelf.json', { cache: 'no-cache' });
+        if (!r.ok) loadErr = `shelf.json が見つかりませんでした（${r.status}）。`;
+        else { let j = null; try { j = JSON.parse(await r.text()); } catch (e) { loadErr = 'shelf.json の書き方に誤りがあり、読み込めませんでした（カンマやかっこの抜けがないか確かめてください）。'; }
+          if (j) { const errs = checkShelf(j); if (errs.length) loadErr = 'shelf.json の中身に問題があります：' + errs.join(' '); else base = normalize(j); } }
+      } catch (e) { loadErr = location.protocol === 'file:' ? 'ファイルを直接開いているため、shelf.json を読み込めません。GitHub Pages などで公開するか、手元ではHTTPサーバー（例：python3 -m http.server）を使って開いてください。' : 'shelf.json を読み込めませんでした（通信エラー）。'; }
+    }
+    // 読み込めないときは、ほかの人の本棚の中身は出さずに、空の本棚と理由を表示する
+    if (!base) { base = normalize({ site: { title: '本棚' } }); const n = $('#loadNotice'); n.textContent = loadErr || 'shelf.json を読み込めませんでした。'; n.hidden = false; }
+    // 公開用ページはサイトの shelf.json だけを表示する。編集できるのは管理用ページだけ
+    const localRaw = ADMIN ? safeParse(store.get(KEY)) : null;
+    const local = localRaw && !checkShelf(localRaw).length ? localRaw : null;
+    $('#openSettings').hidden = !ADMIN;
+    if (local) { cfg = normalize(local); edited = true;
+      // 前に保存した編集に、あとから増えたプレビュー画像を足す
+      cfg.apps.forEach((a) => { const b = base.apps.find((x) => x.id === a.id); if (b && !a.frames.length && b.frames.length) a.frames = b.frames.slice(); });
+    } else { cfg = structuredClone(base); }
+    renderAll();
+    relSig = relState();
+    openFromHash();
+  }
+  // URLの #id で本を開く（あとから #id を変えたときも）
+  function openFromHash() {
+    let h = ''; try { h = decodeURIComponent(location.hash.slice(1)); } catch (e) { h = location.hash.slice(1); }
+    const a = h && cfg.apps.find((x) => x.id === h);
+    if (a) openBook(a.id); else if (!$('#veil').hidden && !h) closeBook();
+  }
+  addEventListener('hashchange', () => { if (cfg) openFromHash(); });
+  // このブラウザへの保存。失敗したら知らせる
+  let saveOk = true;
+  function saveLocal() { saveOk = store.set(KEY, JSON.stringify(cfg)); $('#saveNotice').hidden = saveOk; return saveOk; }
+  const savedNote = () => (saveOk ? '' : '（ただし、このブラウザには保存できませんでした。「バックアップ」タブから書き出してください）');
+  // 設定画面を開いたまま（入力中の欄を消さずに）本棚だけ描き直す
+  function persistQuiet() { edited = true; saveLocal(); const d = $('#drawer'), open = !d.hidden; d.hidden = true; renderAll(); d.hidden = !open; }
+  function persist() { edited = true; saveLocal(); renderAll(); }
+  // しおり（見ている人のブラウザだけに残る）
+  const MARKKEY = 'appShelf.marks.v1';
+  let marks = new Set((() => { const m = safeParse(store.get(MARKKEY)); return Array.isArray(m) ? m.map(String) : []; })());
+  const marked = (a) => marks.has(a.id);
+  function toggleMark(id) { marks.has(id) ? marks.delete(id) : marks.add(id); store.set(MARKKEY, JSON.stringify([...marks])); }
+
+  // ---- 検索（ひらがな・カタカナ、全角・半角をそろえて比べる） ----
+  const fold = (s) => String(s || '').normalize('NFKC').toLowerCase().replace(/[ァ-ヶ]/g, (c) => String.fromCharCode(c.charCodeAt(0) - 0x60));
+  const genreName = (id) => (cfg.genres.find((g) => g.id === id) || {}).name || '';
+  const hay = (a) => fold([a.title, a.summary, a.description, a.tags.join(' '), genreName(a.genre), a.madeBy, a.icon].join(' '));
+  // 公開予定の日時が空なら公開中。書き方が正しくないときは、公開を保留する
+  const relBad = (a) => !!a.releaseAt && isNaN(relTime(a.releaseAt));
+  const released = (a) => !a.releaseAt || (!relBad(a) && relTime(a.releaseAt) <= Date.now());
+  const dayStart = (s) => { const p = ymd(s); if (p) return new Date(p.y, p.m - 1, p.d).getTime(); const t = Date.parse(s); return t; };
+  const isNew = (a) => { const t = dayStart(a.date); return !isNaN(t) && Date.now() - t < 3 * 864e5 && Date.now() >= t - 864e5; };
+  const volLabel = (a) => String(cfg.site.volumeLabel || '{n}').replace('{n}', a.volume);
+  const fmtDate = (s) => { const p = ymd(s); if (p) return `${p.y}年${p.m}月${p.d}日`; const t = Date.parse(s); if (isNaN(t)) return s; const d = new Date(t); return `${d.getFullYear()}年${d.getMonth() + 1}月${d.getDate()}日`; };
+  const fmtRelease = (s) => { const t = relTime(s); if (isNaN(t)) return s; const d = new Date(t); return `${d.getMonth() + 1}月${d.getDate()}日 ${d.getHours()}:${pad2(d.getMinutes())}`; };
+
+  // ---- 描画 ----
+  function renderAll() {
+    document.documentElement.style.setProperty('--accent', cfg.site.accent || '#b5452f');
+    applyFont(cfg.site.font);
+    document.title = cfg.site.title || '本棚';
+    $('#siteTitle').textContent = cfg.site.title;
+    $('#siteSub').textContent = cfg.site.subtitle; $('#siteSub').hidden = !cfg.site.subtitle;
+    $('#owner').innerHTML = cfg.site.owner ? (cfg.site.ownerUrl ? `<a href="${esc(cfg.site.ownerUrl)}" target="_blank" rel="noopener">${esc(cfg.site.owner)}</a>` : esc(cfg.site.owner)) : '';
+    $('#localNotice').hidden = !edited || !ADMIN;
+    const nMarks = cfg.apps.filter(marked).length;
+    if (ui.genre === '__marks' ? !nMarks : ui.genre !== 'all' && !cfg.genres.some((g) => g.id === ui.genre)) ui.genre = 'all';
+    $('#sort').value = ui.sort;
+    const counts = {}; cfg.apps.forEach((a) => (counts[a.genre] = (counts[a.genre] || 0) + 1));
+    $('#chips').innerHTML = [{ id: 'all', name: 'すべて', n: cfg.apps.length }, ...cfg.genres.map((g) => ({ ...g, n: counts[g.id] || 0 })), ...(nMarks ? [{ id: '__marks', name: '🔖 しおり', n: nMarks }] : [])]
+      .map((g) => `<button type="button" class="chip" data-g="${esc(g.id)}" aria-pressed="${ui.genre === g.id}">${esc(g.name)}<small>${g.n}</small></button>`).join('');
+    renderShelf();
+    if (!$('#drawer').hidden) renderDrawer();
+  }
+  function renderShelf() {
+    const q = fold($('#q').value.trim()).split(/\s+/).filter(Boolean);
+    let list = cfg.apps.filter((a) => (ui.genre === 'all' || (ui.genre === '__marks' ? marked(a) : a.genre === ui.genre)) && q.every((w) => hay(a).includes(w)));
+    const by = { vol: (a, b) => a.volume - b.volume, new: (a, b) => (b.date || '').localeCompare(a.date || '') || b.volume - a.volume, title: (a, b) => a.title.localeCompare(b.title, 'ja') };
+    list.sort(by[ui.sort] || by.vol);
+    $('#count').textContent = list.length === cfg.apps.length ? `${cfg.apps.length}冊` : `${cfg.apps.length}冊中 ${list.length}冊`;
+    const bookH = parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--book-h')) || 260;
+    const bookHtml = (a) => {
+      const hseed = [...a.id].reduce((s, c) => (s * 31 + c.charCodeAt(0)) >>> 0, 7);
+      const h = Math.round(bookH * (0.86 + (hseed % 15) / 100));
+      const chars = [...a.title], len = chars.length, room = h - 132, maxFs = bookH < 230 ? 17 : 21;
+      let lines = [a.title], fs = Math.min(maxFs, Math.floor(room / (len * 1.15)));
+      if (fs < 11 && len > 3) {
+        const kind = (c) => /[\u30a0-\u30ff]/.test(c) ? 'k' : /[\u3040-\u309f]/.test(c) ? 'h' : /[\u4e00-\u9fff]/.test(c) ? 'c' : 'o';
+        let best = Math.ceil(len / 2), score = 99;
+        for (let i = 2; i <= len - 2; i++) { const sc = Math.abs(i - len / 2) + (kind(chars[i - 1]) !== kind(chars[i]) ? 0 : 2.5); if (sc < score) { score = sc; best = i; } }
+        lines = [chars.slice(0, best).join(''), chars.slice(best).join('')];
+        fs = Math.max(10, Math.min(maxFs - 3, Math.floor(room / (Math.max(best, len - best) * 1.15)))); }
+      fs = Math.max(10, fs);
+      const need = fs * (lines.length > 1 ? 2.6 : 1.3) + 18;
+      const auto = Math.max(50, Math.min(84, fs * (lines.length > 1 ? 3.4 : 2) + 22));
+      const th = thickOf(a);
+      if (th === 'xthin') { lines = [a.title]; fs = Math.max(8, Math.min(14, Math.floor(room / (len * 1.12)))); }
+      const w = Math.round(th === 'auto' ? auto : th === 'xthin' ? Math.max(30, fs * 1.25 + 10) : Math.max(need, { thin: 40, normal: 58, thick: 86 }[th]));
+      const icon = /^(https?:|data:|\.{0,2}\/|[\w\-]+\/)/.test(a.icon) && /\.(png|jpe?g|svg|webp|gif)$|^data:/i.test(a.icon) ? `<img src="${esc(a.icon)}" alt="">` : esc([...a.icon].slice(0, 2).join(''));
+      const soon = !released(a);
+      return `<div class="slot"><button type="button" class="book${soon ? ' soon' : ''}${th === 'xthin' ? ' xthin' : ''}" data-id="${esc(a.id)}" style="--c:${esc(colorOf(a))};--h:${h}px;--w:${w}px" aria-label="${esc(volLabel(a))} ${esc(a.title)}${soon ? '（公開前）' : ''}${marked(a) ? '（しおりあり）' : ''}">
+        ${marked(a) ? '<span class="mark" aria-hidden="true"></span>' : ''}${soon ? '<span class="ribbon">近日</span>' : isNew(a) ? '<span class="ribbon">NEW</span>' : ''}
+        <span class="vol">${esc(th === 'xthin' ? String(a.volume) : volLabel(a))}</span><span class="ttl" style="font-size:${fs}px">${lines.map(esc).join('<br>')}</span><span class="stamp">${icon}</span></button></div>`;
+    };
+    const coverHtml = (a) => {
+      const soon = !released(a);
+      const icon = /\.(png|jpe?g|svg|webp|gif)$|^data:/i.test(a.icon) ? `<img src="${esc(a.icon)}" alt="">` : esc([...a.icon].slice(0, 2).join(''));
+      const isVid = /\.(mp4|webm|mov|m4v)(\?|#|$)/i.test(a.preview), img = /\.(png|jpe?g|gif|webp|svg)(\?|#|$)/i.test(a.preview) ? a.preview : a.poster;
+      const screen = a.frames.length ? flipHtml(a, true) : isVid ? `${a.poster ? `<img class="still" src="${esc(a.poster)}" alt="" loading="lazy">` : ''}<video class="mv${a.poster ? ' wait' : ''}" data-src="${esc(a.preview)}" muted loop playsinline preload="none" aria-hidden="true"></video>` : img ? `<img src="${esc(img)}" alt="" loading="lazy">` : `<span class="ph" style="position:absolute;inset:0;display:grid;place-items:center;color:var(--gold);font-family:var(--f-display);font-size:40px;font-weight:800">${icon}</span>`;
+      return `<div class="slot"><button type="button" class="cover${soon ? ' soon' : ''}" data-id="${esc(a.id)}" style="--c:${esc(colorOf(a))}" aria-label="${esc(volLabel(a))} ${esc(a.title)}${soon ? '（公開前）' : ''}${marked(a) ? '（しおりあり）' : ''}">
+        ${marked(a) ? '<span class="mark" aria-hidden="true"></span>' : ''}${soon ? '<span class="ribbon">近日</span>' : isNew(a) ? '<span class="ribbon">NEW</span>' : ''}
+        <span class="cv-top"><span>${esc(volLabel(a))}</span><span>${esc(genreName(a.genre))}</span></span>
+        <span class="cv-screen">${screen}</span><span class="cv-title">${esc(a.title)}</span>${a.summary ? `<span class="cv-sum">${esc(a.summary)}</span>` : ''}
+        <span class="cv-foot"><span>${esc(a.madeBy)}</span><span class="stamp">${icon}</span></span></button></div>`;
+    };
+    const cover = ui.view === 'cover';
+    const ghost = q.length || ui.genre !== 'all' ? '' : `<div class="slot" aria-hidden="true"><div class="ghost${cover ? ' c' : ''}">つぎの一冊</div></div>`;
+    const shelf = (books, extra = '', row = false) => `<div class="case"><div class="shelf${cover ? ' covers' : ''}${row ? ' hrow' : ''}">${books.map(cover ? coverHtml : bookHtml).join('')}${extra}</div></div>`;
+    $('#vSpine').checked = !cover; $('#vCover').checked = cover; $('#lOne').checked = ui.layout !== 'genre'; $('#lGenre').checked = ui.layout === 'genre';
+    if (!list.length) { $('#shelves').innerHTML = `<div class="case"><div class="shelf"><div class="empty">${cfg.apps.length ? '<b>この条件の本は見つかりませんでした</b>ことばを短くするか、ジャンルを「すべて」にしてみてください。' : `<b>まだ本がありません</b>${ADMIN ? '右上の「本棚の設定」から本を追加できます。' : ''}`}</div></div></div>`; return; }
+    if (ui.layout === 'genre' && ui.genre === 'all') {
+      const groups = [...cfg.genres.map((g) => ({ name: g.name, books: list.filter((a) => a.genre === g.id) })), { name: 'ジャンルなし', books: list.filter((a) => !cfg.genres.some((g) => g.id === a.genre)) }].filter((g) => g.books.length);
+      $('#shelves').innerHTML = groups.map((g) => `<h2 class="shelfhead">${esc(g.name)}<small>${g.books.length}冊</small></h2>${shelf(g.books, '', cover)}`).join('');
+    } else $('#shelves').innerHTML = shelf(list, ghost);
+    watchCovers(); watchFlips();
+  }
+  // 表紙の動画は、画面に見えている本だけ再生する
+  let io = null;
+  const still = matchMedia('(prefers-reduced-motion: reduce)');
+  function watchCovers() {
+    if (io) io.disconnect();
+    const vids = document.querySelectorAll('.cover video');
+    if (!vids.length || still.matches || !('IntersectionObserver' in window)) return;
+    io = new IntersectionObserver((ents) => ents.forEach((en) => { const v = en.target;
+      if (en.isIntersecting) { if (!v.getAttribute('src')) { v.muted = true; v.src = v.dataset.src; } const p = v.play(); p && p.catch(() => {}); } else v.pause(); }), { threshold: 0.4 });
+    vids.forEach((v) => io.observe(v));
+  }
+
+  // ---- 1冊を開く ----
+  let opener = null, openId = null;
+  // 背景の本棚をキーボード・読み上げの対象から外す（開いた画面の外へフォーカスが抜けないように）
+  const setBgInert = (on) => { const w = $('.wrap'); if (on) { w.setAttribute('inert', ''); w.setAttribute('aria-hidden', 'true'); } else { w.removeAttribute('inert'); w.removeAttribute('aria-hidden'); } };
+  function openBook(id, refresh = false) {
+    const a = cfg.apps.find((x) => x.id === id); if (!a) return;
+    if (!refresh) opener = document.activeElement;
+    openId = a.id;
+    const soon = !released(a);
+    const isVid = /\.(mp4|webm|mov|m4v)(\?|#|$)/i.test(a.preview), isImg = /\.(png|jpe?g|gif|webp|svg)(\?|#|$)/i.test(a.preview);
+    // 動きを減らす設定のときは自動再生せず、再生ボタンで見られるようにする
+    const media = a.frames.length ? flipHtml(a, false) : isVid ? (still.matches ? `<video class="mv on" src="${esc(a.preview)}"${a.poster ? ` poster="${esc(a.poster)}"` : ''} muted loop playsinline controls preload="metadata" aria-label="${esc(a.title)}の画面の動き"></video>`
+        : `${a.poster ? `<img class="still" src="${esc(a.poster)}" alt="${esc(a.title)}の画面">` : ''}<video class="mv${a.poster ? ' wait' : ''}" src="${esc(a.preview)}" autoplay muted loop playsinline preload="auto"></video>`)
+      : isImg ? `<img src="${esc(a.preview)}" alt="${esc(a.title)}の画面">` : a.poster ? `<img src="${esc(a.poster)}" alt="${esc(a.title)}の画面">` : `<div class="ph">${esc([...a.icon].slice(0, 2).join(''))}</div>`;
+    const links = a.links.map((l) => `<a class="play" href="${esc(l.url)}" target="_blank" rel="noopener"${soon ? ' aria-disabled="true" tabindex="-1"' : ''}>▶ ${esc(l.label)}</a>`).join('');
+    const vid = a.video ? `<a class="play sub" href="${esc(a.video)}" target="_blank" rel="noopener">動画で見る</a>` : '';
+    $('#veil').innerHTML = `<article class="open" role="dialog" aria-modal="true" aria-labelledby="openTitle" style="--c:${esc(colorOf(a))}">
+      <button class="x" type="button" data-close aria-label="閉じる">×</button><div class="edge"></div>
+      <div class="media"><div class="screen">${media}</div><p class="cap">${a.frames.length || isVid ? '画面の動き（音は出ません）' : ''}</p></div>
+      <div class="info"><div class="kicker"><span>${esc(volLabel(a))}</span>${a.genre ? `<span>${esc(genreName(a.genre))}</span>` : ''}${a.date ? `<span>${esc(fmtDate(a.date))}</span>` : ''}</div>
+        <h2 id="openTitle">${esc(a.title)}</h2>${a.summary ? `<p class="sum">${esc(a.summary)}</p>` : ''}${a.description ? `<p class="desc">${esc(a.description)}</p>` : ''}
+        ${a.madeBy ? `<div class="kicker">${esc(a.madeBy)}</div>` : ''}
+        ${a.tags.length ? `<div class="tags">${a.tags.map((t) => `<button type="button" class="tag" data-tag="${esc(t)}">#${esc(t)}</button>`).join('')}</div>` : ''}
+        ${soon ? (relBad(a) ? `<div class="warnline">公開予定の日時「${esc(a.releaseAt)}」の書き方が正しくないため、公開を保留しています。</div>` : `<div class="kicker">${esc(fmtRelease(a.releaseAt))} に公開予定です</div>`) : ''}
+        <div class="plays">${links}${vid}<button type="button" class="play sub marktoggle" data-mark="${esc(a.id)}" aria-pressed="${marked(a)}">🔖 ${marked(a) ? 'しおりを外す' : 'しおりを挟む'}</button></div></div></article>`;
+    const wasOpen = !$('#veil').hidden;
+    $('#veil').hidden = false; document.body.style.overflow = 'hidden'; setBgInert(true);
+    if (!refresh || !wasOpen) $('.x', $('#veil')).focus();
+    try { history.replaceState(null, '', '#' + encodeURIComponent(a.id)); } catch (e) {}
+  }
+  function closeBook() { if ($('#veil').hidden) return; $('#veil').hidden = true; $('#veil').innerHTML = ''; openId = null; document.body.style.overflow = ''; setBgInert(false); try { history.replaceState(null, '', location.pathname + location.search); } catch (e) {} opener && opener.focus && opener.focus(); }
+  // 開いた画面の中だけでTabが回るようにする
+  function trapTab(e, box) {
+    const els = [...box.querySelectorAll('a[href]:not([tabindex="-1"]), button:not([disabled]), input:not([disabled]), select, textarea, video[controls], [tabindex]:not([tabindex="-1"])')].filter((el) => el.offsetParent !== null || el === document.activeElement);
+    if (!els.length) return; const first = els[0], last = els[els.length - 1];
+    if (!box.contains(document.activeElement)) { e.preventDefault(); first.focus(); }
+    else if (e.shiftKey && document.activeElement === first) { e.preventDefault(); last.focus(); }
+    else if (!e.shiftKey && document.activeElement === last) { e.preventDefault(); first.focus(); }
+  }
+
+  // ---- 設定 ----
+  let tab = 'books', editing = null, pendingDelete = null;
+  function openDrawer() { $('#drawer').hidden = false; renderDrawer(); document.body.style.overflow = 'hidden'; setBgInert(true); const f = $('#drawer [aria-selected="true"]') || $('#drawer .x'); f && f.focus(); }
+  function closeDrawer() { flushLive(); $('#drawer').hidden = true; editing = null; document.body.style.overflow = ''; setBgInert(false); $('#openSettings').focus(); }
+  const field = (label, name, val, type = 'text', extra = '') => `<label class="field ${extra}"><span>${label}</span><input id="f_${name}" name="${name}" type="${type}" value="${esc(val)}"></label>`;
+  const area = (label, name, val, extra = 'full') => `<label class="field ${extra}"><span>${label}</span><textarea id="f_${name}" name="${name}">${esc(val)}</textarea></label>`;
+  function renderDrawer() {
+    const d = $('#drawer');
+    const tabs = [['books', '本'], ['genres', 'ジャンル'], ['thick', '太さ'], ['site', 'サイト'], ['data', 'バックアップ']];
+    let body = '';
+    if (tab === 'books' && editing) body = bookForm(editing === '__new' ? null : cfg.apps.find((a) => a.id === editing));
+    else if (tab === 'books') body = `<p class="hint">本の追加・並べ替え・編集ができます。変更はすぐ本棚に反映され、このブラウザに保存されます。ほかの人にも見せるには「バックアップ」タブから shelf.json を書き出して、サイトのファイルと置き換えてください。</p>
+      <div><button class="btn primary" type="button" data-act="new">＋ 本を追加</button></div>
+      ${[...cfg.apps].sort((a, b) => a.volume - b.volume).map((a) => `<div class="row" style="--c:${esc(colorOf(a))}"><span class="dot">${esc([...a.icon].slice(0, 1).join(''))}</span>
+        <span class="nm">${esc(a.title)}<small>${esc(volLabel(a))}・${esc(genreName(a.genre) || 'ジャンルなし')}</small>${relBad(a) ? '<small class="warnline">公開予定の日時の書き方が正しくありません（公開を保留中）</small>' : ''}</span>
+        <span class="acts"><button class="btn" type="button" data-act="up" data-id="${esc(a.id)}" aria-label="${esc(a.title)}を前へ">↑</button><button class="btn" type="button" data-act="down" data-id="${esc(a.id)}" aria-label="${esc(a.title)}を後ろへ">↓</button>
+        <button class="btn" type="button" data-act="edit" data-id="${esc(a.id)}">編集</button><button class="btn" type="button" data-act="bexport" data-id="${esc(a.id)}" aria-label="${esc(a.title)}を1冊だけ書き出す">書き出す</button>
+        ${pendingDelete === a.id ? `<span class="confirm">削除しますか？<button class="btn danger" type="button" data-act="del-yes" data-id="${esc(a.id)}">削除</button><button class="btn" type="button" data-act="del-no">やめる</button></span>` : `<button class="btn danger" type="button" data-act="del" data-id="${esc(a.id)}">削除</button>`}</span></div>`).join('')}`;
+    else if (tab === 'genres') body = `<p class="hint">ジャンルは本棚の上の絞り込みボタンになります。名前を変えると、そのジャンルの本にもそのまま反映されます。</p>
+      <fieldset class="vm-panel" style="position:static;width:auto;box-shadow:none"><legend>背表紙の色</legend><div class="seg"><label><input type="radio" name="colorBy" value="book"${cfg.site.colorBy !== 'genre' ? ' checked' : ''}><span>本ごとの色</span></label><label><input type="radio" name="colorBy" value="genre"${cfg.site.colorBy === 'genre' ? ' checked' : ''}><span>ジャンルの色でそろえる</span></label></div>
+      <p class="hint">「ジャンルの色でそろえる」にすると、下で決めた色で同じジャンルの本がそろいます。色を決めていないジャンルの本は、本ごとの色のままです。</p></fieldset>
+      ${cfg.genres.map((g, i) => { const n = cfg.apps.filter((a) => a.genre === g.id).length; return `<div class="row" style="grid-template-columns:1fr auto auto"><label class="field"><span>ジャンル名（${n}冊）</span><input id="g_${i}" data-gi="${i}" value="${esc(g.name)}"></label><label class="field" style="width:64px"><span>色</span><input type="color" id="gc_${i}" data-gc="${i}" value="${esc(g.color || PALETTE[i % PALETTE.length])}"></label>
+        <span class="acts">${pendingDelete === 'g:' + g.id ? `<span class="confirm">${n ? `${n}冊がジャンルなしになります。` : ''}削除しますか？<button class="btn danger" type="button" data-act="gdel-yes" data-gid="${esc(g.id)}">削除</button><button class="btn" type="button" data-act="del-no">やめる</button></span>` : `<button class="btn danger" type="button" data-act="gdel" data-gid="${esc(g.id)}">削除</button>`}</span></div>`; }).join('')}
+      <div class="row" style="grid-template-columns:1fr auto"><label class="field"><span>新しいジャンル</span><input id="g_new" placeholder="例：パズル"></label><span class="acts"><button class="btn primary" type="button" data-act="gadd">追加</button></span></div>`;
+    else if (tab === 'thick') {
+      const own = cfg.apps.filter((a) => TH.includes(a.thickness));
+      body = `<p class="hint">背表紙の太さは「本ごと」→「ジャンルごと」→「全体」の順に決まります。本やジャンルで「〜に合わせる」にしておくと、上の段の設定がそのまま使われます。変えるとすぐ本棚に反映されます。</p>
+      <div class="thgrid"><h3>全体</h3><span class="lbl">すべての本の基本</span><select id="th_site" data-th="site" aria-label="全体の太さ">${thOptions(cfg.site.thickness)}</select>
+      <h3>ジャンルごと</h3>${cfg.genres.map((g) => `<span class="lbl">${esc(g.name)}</span><select id="th_g_${esc(g.id)}" data-th-genre="${esc(g.id)}" aria-label="${esc(g.name)}の太さ">${thOptions(g.thickness, '全体に合わせる')}</select>`).join('') || '<span class="lbl">ジャンルがありません</span><span></span>'}
+      <h3>本ごと</h3>${[...cfg.apps].sort((a, b) => a.volume - b.volume).map((a) => `<span class="lbl">${esc(a.title)}<small>いま：${TH_NAME[thickOf(a)].replace(/（.*）/, '')}</small></span><select id="th_b_${esc(a.id)}" data-th-book="${esc(a.id)}" aria-label="${esc(a.title)}の太さ">${thOptions(a.thickness, 'ジャンル・全体に合わせる')}</select>`).join('')}</div>
+      <div><button class="btn" type="button" data-act="th-clear"${own.length ? '' : ' disabled'}>本ごとの設定をすべて解除（${own.length}冊）</button></div>`;
+    }
+    else if (tab === 'site') { const s = cfg.site; loadFontPreviews(); body = `<p class="hint">入力するとすぐ本棚に反映されます。</p><form class="form" id="siteForm">${field('本棚のタイトル', 'title', s.title, 'text', 'full')}${area('説明文', 'subtitle', s.subtitle)}${field('作った人・チャンネル名', 'owner', s.owner)}${field('作った人のリンク', 'ownerUrl', s.ownerUrl, 'url')}${field('アクセント色', 'accent', s.accent, 'color')}${field('巻の書き方（{n}が数字）', 'volumeLabel', s.volumeLabel)}
+      <fieldset class="field full fonts"><legend>文字の雰囲気</legend><div class="fontgrid">${Object.entries(FONTS).map(([k, f]) => `<label class="fontcard"><input type="radio" name="font" value="${k}" data-font${s.font === k ? ' checked' : ''}><span class="fs" style="font-family:${esc(f.display)}">本棚 メモ帳 Aa</span><span class="fn">${f.name}</span></label>`).join('')}</div></fieldset></form>`; }
+    else body = `<div class="field"><span>バックアップを書き出す</span><p class="hint">サイト情報・ジャンル・すべての本を、1つのファイル（shelf.json）にまとめて保存します。このファイルをサイトの shelf.json と置き換えると、だれが開いても同じ本棚になります。</p>
+      <div style="display:flex;flex-wrap:wrap;gap:8px"><button class="btn primary" type="button" data-act="export">バックアップを書き出す</button><button class="btn" type="button" data-act="copy">中身をコピー</button></div></div>
+      <div class="field"><span>バックアップから戻す</span><p class="hint">書き出したファイルを選ぶと、そのときの本棚に戻ります。</p><input type="file" id="fileIn" accept="application/json,.json"></div>
+      <div style="display:flex;flex-wrap:wrap;gap:8px;align-items:center">
+      ${edited ? (pendingDelete === 'reset' ? `<span class="confirm">このブラウザでの編集を消して、元の本棚に戻しますか？<button class="btn danger" type="button" data-act="reset-yes">元に戻す</button><button class="btn" type="button" data-act="del-no">やめる</button></span>` : `<button class="btn danger" type="button" data-act="reset">元の本棚に戻す</button>`) : ''}</div>
+      <p class="status" id="dataStatus" role="status"></p>`;
+    d.innerHTML = `<header><h2 id="drawerTitle">本棚の設定</h2><button class="x" style="position:static" type="button" data-act="close" aria-label="閉じる">×</button></header>
+      <div class="tabs" role="tablist">${tabs.map(([k, n]) => `<button class="tab" type="button" role="tab" aria-selected="${tab === k}" data-tab="${k}">${n}</button>`).join('')}</div><div class="pane">${body}</div>`;
+  }
+  function bookForm(a) {
+    const isNewBook = !a;
+    a = a || { id: '', volume: (Math.max(0, ...cfg.apps.map((x) => x.volume)) + 1), title: '', genre: cfg.genres[0]?.id || '', icon: '', color: '#3d6b8f', summary: '', description: '', tags: [], madeBy: '', date: todayYmd(), releaseAt: '', preview: '', poster: '', frames: [], links: [{ label: '遊ぶ', url: '' }], video: '' };
+    return `<form class="form" id="bookForm" data-orig="${esc(isNewBook ? '' : a.id)}">
+      <div class="full"><button class="btn" type="button" data-act="back">← 一覧に戻る</button></div>
+      ${field('タイトル（必須）', 'title', a.title, 'text', 'full')}
+      ${field('巻の番号', 'volume', a.volume, 'number')}
+      <label class="field"><span>ジャンル</span><select id="f_genre" name="genre"><option value="">ジャンルなし</option>${cfg.genres.map((g) => `<option value="${esc(g.id)}"${g.id === a.genre ? ' selected' : ''}>${esc(g.name)}</option>`).join('')}</select></label>
+      ${field('背表紙の印（1〜2文字、または画像のURL）', 'icon', a.icon)}${field('背表紙の色', 'color', a.color, 'color')}
+      ${area('ひとこと説明', 'summary', a.summary)}${area('くわしい説明', 'description', a.description)}
+      ${field('タグ（「、」か「,」で区切る）', 'tags', a.tags.join('、'), 'text', 'full')}
+      ${field('作り方（例：Claudeだけで作成）', 'madeBy', a.madeBy)}
+      <label class="field"><span>背表紙の太さ</span><select id="f_thickness" name="thickness">${thOptions(a.thickness || 'inherit', 'ジャンル・全体に合わせる')}</select></label>
+      ${field('公開日', 'date', ymd(a.date) ? a.date : '', 'date')}${field('公開予定の日時（このパソコンの時刻。空なら公開中）', 'releaseAt', toLocalInput(a.releaseAt), 'datetime-local')}
+      ${relBad(a) ? `<p class="warnline full">いまの公開予定「${esc(a.releaseAt)}」は時差のない書き方のため、公開を保留しています。日時を選び直すと直ります。</p>` : ''}
+      ${field('プレビュー（動画 mp4/webm か画像のURL）', 'preview', a.preview, 'text', 'full')}${field('動画の止め絵（画像のURL）', 'poster', a.poster, 'text', 'full')}${area('コマ送りの画像（1行に1つ。入れると動画の代わりにパッパッと切りかえて見せます）', 'frames', a.frames.join('\n'))}
+      <div class="field full"><span>遊ぶボタン（表示名とURL）</span><div class="links" id="linkRows">${a.links.map((l) => linkRow(l)).join('')}</div><div><button class="btn" type="button" data-act="addlink">＋ ボタンを追加</button></div></div>
+      ${field('紹介動画のURL', 'video', a.video, 'url', 'full')}
+      ${field('ID（URLの末尾に使う英数字。空なら自動）', 'bookid', a.id, 'text', 'full')}
+      <div class="full" style="display:flex;gap:8px;align-items:center">${isNewBook ? '<button class="btn primary" type="submit">本棚に追加</button><button class="btn" type="button" data-act="back">やめる</button>' : `<button class="btn" type="button" data-act="back">← 一覧に戻る</button><button class="btn" type="button" data-act="bexport" data-id="${esc(a.id)}">この本を書き出す</button><span class="hint">変更はすぐ本棚に反映されます</span>`}</div>
+      <p class="status full" id="bookStatus" role="status"></p></form>`;
+  }
+  const linkRow = (l = { label: '', url: '' }) => `<div class="linkrow"><input aria-label="表示名" data-l="label" value="${esc(l.label)}" placeholder="遊ぶ"><input aria-label="URL" data-l="url" value="${esc(l.url)}" placeholder="https://"><button class="btn" type="button" data-act="rmlink" aria-label="このボタンを消す">×</button></div>`;
+  function saveBook(form, live = false) {
+    if (!form || !form.isConnected) return;
+    const fd = new FormData(form), get = (k) => String(fd.get(k) ?? '').trim();
+    const st = $('#bookStatus', form) || { textContent: '' }; if (live) st.textContent = '';
+    if (!get('title')) { st.textContent = 'タイトルを入れてください。'; if (!live) $('#f_title').focus(); return; }
+    const orig = form.dataset.orig;
+    let id = slug(get('bookid') || ''); if (!get('bookid')) id = orig || slug(get('title').normalize('NFKC'));
+    if (/^app-/.test(id) && !get('bookid') && !orig) id = 'book-' + Date.now().toString(36);
+    if (cfg.apps.some((x) => x.id === id && x.id !== orig)) { st.textContent = `ID「${id}」はほかの本で使われています。別のIDにしてください。`; if (!live) $('#f_bookid').focus(); return; }
+    // 公開予定：入力欄の値（このパソコンの時刻）を、時差つきの文字に。日時を触っていなければ元の値のまま
+    const relIn = get('releaseAt'), prev = cfg.apps.find((x) => x.id === orig);
+    const rel = !relIn ? '' : prev && toLocalInput(prev.releaseAt) === relIn ? prev.releaseAt : fromLocalInput(relIn);
+    const links = [...form.querySelectorAll('.linkrow')].map((r) => ({ label: r.querySelector('[data-l=label]').value.trim() || '遊ぶ', url: r.querySelector('[data-l=url]').value.trim() })).filter((l) => l.url);
+    const urls = [...links.map((l) => l.url), get('video'), get('preview'), get('poster'), ...get('frames').split(/\n+/).map((s) => s.trim()).filter(Boolean)];
+    const badUrls = urls.filter((u, k) => u && !safeUrl(u, k >= links.length + 1));
+    const rec = normalize({ apps: [{ id, volume: get('volume'), title: get('title'), genre: get('genre'), icon: get('icon') || [...get('title')][0], color: get('color'), summary: get('summary'), description: get('description'), tags: get('tags'), madeBy: get('madeBy'), thickness: get('thickness'), date: get('date'), releaseAt: rel, preview: get('preview'), poster: get('poster'), frames: get('frames'), links, video: get('video') }] }).apps[0];
+    rec.id = id;
+    const i = cfg.apps.findIndex((x) => x.id === orig);
+    if (i >= 0) cfg.apps[i] = rec; else cfg.apps.push(rec);
+    const warn = badUrls.length ? `使えないURLがあるため外しました（http:// か https:// で始まるURLか、サイト内のパスにしてください）：${badUrls.map((u) => u.slice(0, 40)).join('、')}` : '';
+    if (live) { form.dataset.orig = id; editing = id; persistQuiet(); st.textContent = warn || (saveOk ? '' : 'このブラウザに保存できませんでした。「バックアップ」タブから書き出してください。'); return; }
+    editing = null; persist(); flash(`「${rec.title}」を${i >= 0 ? '保存' : '追加'}しました。${savedNote()}${warn ? ' ' + warn : ''}`);
+  }
+  function flash(msg) { const p = document.createElement('p'); p.className = 'status'; p.setAttribute('role', 'status'); p.textContent = msg; const pane = $('.pane', $('#drawer')); pane && pane.prepend(p); }
+  function move(id, dir) {
+    const list = [...cfg.apps].sort((a, b) => a.volume - b.volume); const i = list.findIndex((a) => a.id === id), j = i + dir;
+    if (j < 0 || j >= list.length) return; const v = list[i].volume; list[i].volume = list[j].volume; list[j].volume = v;
+    if (list[i].volume === list[j].volume) list[i].volume += dir; persist();
+  }
+  // 本棚まるごと（apps あり）は入れ替え、1冊分（format: app-shelf-book / book / 本1件）は追加・上書き
+  function importJson(texts) {
+    // まず全部のファイルを確かめ、1つでも問題があれば何も変えずに理由を出す
+    let whole = null; const books = []; const errs = [];
+    for (const [name, text] of texts) {
+      let raw; try { raw = JSON.parse(text); } catch (e) { errs.push(`${name}：JSONの書き方に誤りがあります（カンマやかっこの抜けがないか確かめてください）。`); continue; }
+      if (raw && typeof raw === 'object' && !Array.isArray(raw) && 'apps' in raw) { const e = checkShelf(raw); if (e.length) errs.push(`${name}：${e.join(' ')}`); else whole = raw; }
+      else if (raw && typeof raw === 'object' && !Array.isArray(raw) && 'book' in raw) { const e = checkBook(raw.book, '本'); if (e.length) errs.push(`${name}：${e.join(' ')}`); else books.push(raw.book); }
+      else if (Array.isArray(raw) && raw.length) { const e = raw.flatMap((b, i) => checkBook(b, `${i + 1}冊目`)); if (e.length) errs.push(`${name}：${e.slice(0, 6).join(' ')}`); else books.push(...raw); }
+      else if (raw && typeof raw === 'object' && !Array.isArray(raw) && 'title' in raw) { const e = checkBook(raw, '本'); if (e.length) errs.push(`${name}：${e.join(' ')}`); else books.push(raw); }
+      else errs.push(`${name}：本棚（apps のあるJSON）か、1冊分（book のあるJSON）として読めませんでした。`);
+    }
+    if (errs.length) { $('#dataStatus').textContent = '読み込みをやめました。本棚は変わっていません。' + errs.join(' '); return; }
+    const msg = [];
+    // 候補を作ってから、一度に入れ替える
+    const next = whole ? normalize(whole) : structuredClone(cfg);
+    if (whole) msg.push(`本棚を入れ替えました（${next.apps.length}冊）`);
+    if (books.length) {
+      let added = 0, updated = 0;
+      normalize({ apps: books }).apps.forEach((b, k) => { const gname = str(books[k].genreName).trim();
+        const i = next.apps.findIndex((x) => x.id === b.id); if (i >= 0) { next.apps[i] = b; updated++; } else { if (!b.volume || next.apps.some((x) => x.volume === b.volume)) b.volume = Math.max(0, ...next.apps.map((x) => x.volume)) + 1; next.apps.push(b); added++; }
+        if (b.genre && !next.genres.some((g) => g.id === b.genre)) next.genres.push({ id: b.genre, name: gname || b.genre, thickness: 'inherit', color: '' }); });
+      msg.push(`${added ? `${added}冊を追加` : ''}${added && updated ? '、' : ''}${updated ? `${updated}冊を上書き（同じIDの本があったため）` : ''}しました`);
+    }
+    cfg = next; persist(); renderDrawer();
+    $('#dataStatus').textContent = msg.join('。') + '。' + savedNote();
+  }
+  function download(name, obj, statusEl) {
+    const text = JSON.stringify(obj, null, 2);
+    try { const url = URL.createObjectURL(new Blob([text], { type: 'application/json' })); const a = document.createElement('a'); a.href = url; a.download = name; document.body.appendChild(a); a.click(); a.remove(); setTimeout(() => URL.revokeObjectURL(url), 2000);
+      if (statusEl) statusEl.textContent = `${name} を書き出しました。保存されない場合は「JSONをコピー」を使ってください。`; } catch (e) { if (statusEl) statusEl.textContent = '書き出せませんでした。「JSONをコピー」を使ってください。'; }
+  }
+  const stamp = () => { const d = new Date(); return `${d.getFullYear()}${String(d.getMonth() + 1).padStart(2, '0')}${String(d.getDate()).padStart(2, '0')}`; };
+  const exportJson = () => download('shelf.json', cfg, $('#dataStatus'));
+  const exportBackup = () => download(`shelf-backup-${stamp()}.json`, cfg, $('#dataStatus'));
+  function exportBook(id) {
+    const b = cfg.apps.find((x) => x.id === id); if (!b) return;
+    download(`book-${b.id}.json`, { format: 'app-shelf-book', version: 1, book: { ...b, genreName: genreName(b.genre) } }, null);
+    flash(`「${b.title}」を book-${b.id}.json として書き出しました。ほかの本棚の「バックアップから戻す」で選ぶと追加できます。`);
+  }
+
+  // ---- 操作 ----
+  document.addEventListener('click', (e) => {
+    const t = e.target.closest('button, [data-close]');
+    if (e.target === $('#veil')) return closeBook();
+    if (!t) return;
+    // 入力中の変更（0.3秒待ち）があれば、画面を切りかえる前に保存する
+    if (t.closest('#drawer') && !t.matches('[data-act="rmlink"], [data-act="addlink"]')) flushLive();
+    if (t.dataset.mark) { toggleMark(t.dataset.mark); renderAll(); return openBook(t.dataset.mark, true); }
+    if (t.matches('.book, .cover')) return openBook(t.dataset.id);
+    if (t.matches('[data-close]')) return closeBook();
+    if (t.matches('.chip')) { ui.genre = t.dataset.g; store.set(UIKEY, JSON.stringify(ui)); return renderAll(); }
+    if (t.matches('.tag')) { closeBook(); $('#q').value = t.dataset.tag; ui.genre = 'all'; return renderAll(); }
+    if (t.id === 'openSettings') return openDrawer();
+    if (t.id === 'noticeReset') { tab = 'data'; pendingDelete = 'reset'; return openDrawer(); }
+    if (t.dataset.tab) { tab = t.dataset.tab; editing = null; pendingDelete = null; return renderDrawer(); }
+    const act = t.dataset.act; if (!act) return;
+    const id = t.dataset.id;
+    ({
+      close: closeDrawer, new: () => { editing = '__new'; renderDrawer(); $('#f_title').focus(); }, edit: () => { editing = id; renderDrawer(); }, back: () => { editing = null; renderDrawer(); },
+      up: () => move(id, -1), down: () => move(id, 1), del: () => { pendingDelete = id; renderDrawer(); }, 'del-no': () => { pendingDelete = null; renderDrawer(); },
+      'del-yes': () => { const a = cfg.apps.find((x) => x.id === id); cfg.apps = cfg.apps.filter((x) => x.id !== id); pendingDelete = null; persist(); flash(`「${a ? a.title : ''}」を本棚から外しました。${savedNote()}`); },
+      addlink: () => $('#linkRows').insertAdjacentHTML('beforeend', linkRow()), rmlink: () => { const f = t.closest('form'); t.closest('.linkrow').remove(); if (f && f.dataset.orig) saveBook(f, true); },
+      gadd: () => { const n = $('#g_new').value.trim(); if (!n) return $('#g_new').focus();
+        if (cfg.genres.some((g) => g.name === n)) { flash(`「${n}」というジャンルはもうあります。`); return; }
+        let gid = slug(n.normalize('NFKC')); if (/^app-/.test(gid)) gid = 'g-' + Date.now().toString(36);
+        const base0 = gid; let k = 2; while (cfg.genres.some((g) => g.id === gid)) gid = `${base0}-${k++}`; // IDは重ねない
+        cfg.genres.push({ id: gid, name: n, thickness: 'inherit', color: PALETTE[cfg.genres.length % PALETTE.length] }); persist(); flash(`ジャンル「${n}」を追加しました。${savedNote()}`); },
+      gdel: () => { pendingDelete = 'g:' + t.dataset.gid; renderDrawer(); },
+      'gdel-yes': () => { const g = t.dataset.gid; cfg.genres = cfg.genres.filter((x) => x.id !== g); cfg.apps.forEach((a) => { if (a.genre === g) a.genre = ''; }); pendingDelete = null; persist(); },
+      'th-clear': () => { cfg.apps.forEach((a) => (a.thickness = 'inherit')); persist(); },
+      export: exportJson, 'export-backup': exportBackup, bexport: () => exportBook(cfg.apps.some((x) => x.id === id) ? id : editing),
+      copy: () => { const text = JSON.stringify(cfg, null, 2); const st = $('#dataStatus'); const fail = () => { st.textContent = 'コピーできませんでした。GitHub Pages で開いて「バックアップを書き出す」を使ってください。'; }; if (navigator.clipboard) navigator.clipboard.writeText(text).then(() => (st.textContent = '本棚の中身をコピーしました。テキストファイルに貼り付けて shelf.json という名前で保存できます。'), fail); else fail(); },
+      import: () => { const v = $('#jsonIn').value.trim(); if (!v) { $('#dataStatus').textContent = 'ファイルを選ぶか、JSONを貼り付けてください。'; return; } importJson([['貼り付けたJSON', v]]); },
+      reset: () => { pendingDelete = 'reset'; renderDrawer(); },
+      'reset-yes': () => { store.del(KEY); cfg = structuredClone(base); edited = false; pendingDelete = null; renderAll(); renderDrawer(); $('#dataStatus') && ($('#dataStatus').textContent = '元の本棚に戻しました。'); },
+    }[act] || (() => {}))();
+  });
+  document.addEventListener('submit', (e) => {
+    e.preventDefault();
+    if (e.target.getAttribute('id') === 'bookForm') saveBook(e.target);
+    if (e.target.getAttribute('id') === 'siteForm') liveSite(e.target);
+  });
+  document.addEventListener('change', (e) => {
+    if (e.target.dataset.font !== undefined) { cfg.site.font = e.target.value; persistQuiet(); }
+    if (e.target.name === 'colorBy') { cfg.site.colorBy = e.target.value; if (cfg.site.colorBy === 'genre') cfg.genres.forEach((g, i) => { if (!g.color) g.color = PALETTE[i % PALETTE.length]; }); persist(); }
+    if (e.target.dataset.gc !== undefined) { const g = cfg.genres[+e.target.dataset.gc]; if (g) { g.color = e.target.value; if (cfg.site.colorBy !== 'genre') cfg.site.colorBy = 'genre'; persist(); } }
+    if (e.target.name === 'view') { ui.view = e.target.value; store.set(UIKEY, JSON.stringify(ui)); renderShelf(); }
+    if (e.target.name === 'layout') { ui.layout = e.target.value; store.set(UIKEY, JSON.stringify(ui)); renderShelf(); }
+    if (e.target.dataset.th === 'site') { cfg.site.thickness = e.target.value; persist(); }
+    if (e.target.dataset.thGenre) { const g = cfg.genres.find((x) => x.id === e.target.dataset.thGenre); if (g) { g.thickness = e.target.value; persist(); } }
+    if (e.target.dataset.thBook) { const a = cfg.apps.find((x) => x.id === e.target.dataset.thBook); if (a) { a.thickness = e.target.value; persist(); } }
+    if (e.target.id === 'sort') { ui.sort = e.target.value; store.set(UIKEY, JSON.stringify(ui)); renderShelf(); }
+    if (e.target.dataset.gi !== undefined) { const g = cfg.genres[+e.target.dataset.gi]; const v = e.target.value.trim(); if (g && v) { g.name = v; persist(); } }
+    if (e.target.id === 'fileIn' && e.target.files.length) { Promise.all([...e.target.files].map((f) => f.text().then((t) => [f.name, t]))).then(importJson); }
+  });
+  $('#q').addEventListener('input', renderShelf);
+  function liveSite(form) { if (!form || !form.isConnected) return; const fd = new FormData(form); ['title', 'subtitle', 'owner', 'ownerUrl', 'accent', 'volumeLabel'].forEach((k) => (cfg.site[k] = String(fd.get(k) ?? '').trim())); if (!cfg.site.title) cfg.site.title = 'わたしの本棚'; persistQuiet(); }
+  // 入力が止まってから少し待って保存する。画面を切りかえるときは flushLive() ですぐ保存する
+  let liveT = null, liveFn = null;
+  const schedule = (fn, ms) => { clearTimeout(liveT); liveFn = fn; liveT = setTimeout(() => { const f = liveFn; liveFn = null; liveT = null; f && f(); }, ms); };
+  function flushLive() { if (!liveFn) return; clearTimeout(liveT); const f = liveFn; liveFn = null; liveT = null; f(); }
+  const liveEdit = (e) => {
+    const f = e.target.closest && e.target.closest('form'); if (!f) return;
+    const id = f.getAttribute('id');
+    if (id === 'siteForm' && !('font' in e.target.dataset)) schedule(() => liveSite(f), 250);
+    if (id === 'bookForm' && f.dataset.orig) schedule(() => saveBook(f, true), 300);
+  };
+  document.addEventListener('input', liveEdit);
+  document.addEventListener('change', liveEdit);
+  // コマ送り：見えているものだけ、0.7秒ごとに次の画像へ
+  const flipSeen = new WeakSet(); let fio = null;
+  function watchFlips() {
+    if (fio) fio.disconnect();
+    if (!('IntersectionObserver' in window)) { document.querySelectorAll('[data-flip]').forEach((f) => flipSeen.add(f)); return; }
+    fio = new IntersectionObserver((ents) => ents.forEach((en) => { en.isIntersecting ? flipSeen.add(en.target) : flipSeen.delete(en.target); }), { threshold: 0.3 });
+    document.querySelectorAll('[data-flip]').forEach((f) => fio.observe(f));
+  }
+  setInterval(() => {
+    if (still.matches || document.hidden) return;
+    document.querySelectorAll('[data-flip]').forEach((f) => {
+      if (!flipSeen.has(f) && !f.closest('.veil')) return;
+      const imgs = f.children; if (imgs.length < 2) return;
+      let i = [...imgs].findIndex((x) => x.classList.contains('on'));
+      imgs[i]?.classList.remove('on'); imgs[(i + 1) % imgs.length].classList.add('on');
+    });
+  }, 700);
+  // 動画が流れ始めたら止め絵の上に出す。読み込めないときは止め絵のまま
+  document.addEventListener('playing', (e) => { if (e.target.classList && e.target.classList.contains('mv')) e.target.classList.add('on'); }, true);
+  document.addEventListener('click', (e) => { const m = $('#viewmenu'); if (m.open && !m.contains(e.target)) m.open = false; });
+  document.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape') { if ($('#viewmenu').open) { $('#viewmenu').open = false; $('#viewmenu summary').focus(); } else if (!$('#veil').hidden) closeBook(); else if (!$('#drawer').hidden) closeDrawer(); }
+    if (e.key === 'Tab') { if (!$('#veil').hidden) trapTab(e, $('#veil .open')); else if (!$('#drawer').hidden) trapTab(e, $('#drawer')); }
+    if (e.key === '/' && !/input|textarea|select/i.test(document.activeElement.tagName)) { e.preventDefault(); $('#q').focus(); }
+  });
+  let rt; addEventListener('resize', () => { clearTimeout(rt); rt = setTimeout(renderShelf, 150); });
+  // 公開予定の時刻をまたいだら、棚と開いている本の両方を描き直す（「近日」が外れ、遊ぶボタンが押せるようになる）
+  let relSig = '';
+  const relState = () => (cfg ? cfg.apps.map((a) => (released(a) ? 1 : 0)).join('') : '');
+  function checkRelease() { const s = relState(); if (s === relSig) return; const first = !relSig; relSig = s; if (first) return; renderShelf(); if (openId && !$('#veil').hidden) openBook(openId, true); }
+  setInterval(checkRelease, 15000);
+  document.addEventListener('visibilitychange', () => { if (!document.hidden) checkRelease(); });
+  load();
+})();
+</script>
+
+</body>
+</html>

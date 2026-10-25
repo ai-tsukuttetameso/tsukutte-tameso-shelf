@@ -1,0 +1,327 @@
+{
+  "format": "app-shelf",
+  "version": 1,
+  "site": {
+    "title": "AIでつくってためそ 本棚",
+    "subtitle": "AIに作らせたアプリを、1冊ずつ並べています。背表紙を選ぶと、動きのプレビューと遊ぶボタンが出ます。",
+    "owner": "AIでつくってためそ（うーたん）",
+    "ownerUrl": "https://www.youtube.com/@ai-tsukuttetameso",
+    "accent": "#b5452f",
+    "volumeLabel": "第{n}回"
+  },
+  "genres": [
+    {
+      "id": "tool",
+      "name": "道具"
+    },
+    {
+      "id": "game",
+      "name": "ゲーム"
+    },
+    {
+      "id": "sim",
+      "name": "シミュレーション"
+    }
+  ],
+  "apps": [
+    {
+      "id": "editor",
+      "volume": 1,
+      "title": "メモ帳",
+      "genre": "tool",
+      "icon": "メ",
+      "color": "#2f5d62",
+      "summary": "パソコンでおなじみのメモ帳を、ChatGPTとClaudeが同じ指示で作り比べ。",
+      "description": "検索と置換、フォント変更、自動保存まで。昔のパソコンで作ったファイルを開くと、片方は文字化けしました。書いた内容はブラウザの中にだけ保存されます。",
+      "tags": [
+        "作り比べ",
+        "メモ帳",
+        "自動保存",
+        "文字化け"
+      ],
+      "madeBy": "ChatGPT と Claude の作り比べ",
+      "date": "2026-10-17",
+      "preview": "previews/editor.mp4",
+      "poster": "previews/editor.jpg",
+      "links": [
+        {
+          "label": "ChatGPT版",
+          "url": "https://ai-tsukuttetameso.github.io/tsukutte-tameso-editor-chatgpt/"
+        },
+        {
+          "label": "Claude版",
+          "url": "https://ai-tsukuttetameso.github.io/tsukutte-tameso-editor-claude/"
+        }
+      ],
+      "video": "https://www.youtube.com/watch?v=Ed3xsyAQKlw",
+      "frames": [
+        "previews/editor-1.jpg",
+        "previews/editor-2.jpg",
+        "previews/editor-3.jpg",
+        "previews/editor-4.jpg",
+        "previews/editor-5.jpg",
+        "previews/editor-6.jpg"
+      ]
+    },
+    {
+      "id": "paint",
+      "volume": 2,
+      "title": "お絵描きソフト",
+      "genre": "tool",
+      "icon": "絵",
+      "color": "#7a3b52",
+      "summary": "ペン、図形、塗りつぶし、PNG保存。昔ながらのお絵描きソフトを作り比べ。",
+      "description": "写真の空を塗りつぶすと、片方は1ドットしか塗れませんでした。描いた絵や開いた画像は、ブラウザの中だけで処理されます。",
+      "tags": [
+        "作り比べ",
+        "ペイント",
+        "塗りつぶし"
+      ],
+      "madeBy": "ChatGPT と Claude の作り比べ",
+      "date": "2026-10-17",
+      "preview": "previews/paint.mp4",
+      "poster": "previews/paint.jpg",
+      "links": [
+        {
+          "label": "ChatGPT版",
+          "url": "https://ai-tsukuttetameso.github.io/tsukutte-tameso-paint-chatgpt/"
+        },
+        {
+          "label": "Claude版",
+          "url": "https://ai-tsukuttetameso.github.io/tsukutte-tameso-paint-claude/"
+        }
+      ],
+      "video": "https://www.youtube.com/watch?v=cE8R2qJv-Uo",
+      "frames": [
+        "previews/paint-1.jpg",
+        "previews/paint-2.jpg",
+        "previews/paint-3.jpg",
+        "previews/paint-4.jpg",
+        "previews/paint-5.jpg",
+        "previews/paint-6.jpg"
+      ]
+    },
+    {
+      "id": "calculator",
+      "volume": 3,
+      "title": "電卓",
+      "genre": "tool",
+      "icon": "算",
+      "color": "#344a6e",
+      "summary": "四則演算から関数電卓まで。0.1＋0.2−0.3で差がついた電卓。",
+      "description": "メモリー、計算履歴、キーボード操作つき。片方は「0.1＋0.2−0.3」が0になりませんでした。計算はブラウザの中だけで行います。",
+      "tags": [
+        "作り比べ",
+        "電卓",
+        "関数電卓",
+        "小数の計算"
+      ],
+      "madeBy": "ChatGPT と Claude の作り比べ",
+      "date": "2026-10-18",
+      "preview": "previews/calculator.mp4",
+      "poster": "previews/calculator.jpg",
+      "links": [
+        {
+          "label": "ChatGPT版",
+          "url": "https://ai-tsukuttetameso.github.io/tsukutte-tameso-calculator-chatgpt/"
+        },
+        {
+          "label": "Claude版",
+          "url": "https://ai-tsukuttetameso.github.io/tsukutte-tameso-calculator-claude/"
+        }
+      ],
+      "video": "https://www.youtube.com/watch?v=PA30sf_ypFE",
+      "frames": [
+        "previews/calculator-1.jpg",
+        "previews/calculator-2.jpg",
+        "previews/calculator-3.jpg",
+        "previews/calculator-4.jpg",
+        "previews/calculator-5.jpg",
+        "previews/calculator-6.jpg"
+      ]
+    },
+    {
+      "id": "minesweeper",
+      "volume": 4,
+      "title": "地雷さがし",
+      "genre": "game",
+      "icon": "雷",
+      "color": "#5c6b2e",
+      "summary": "おなじみのマインスイーパーに「AIにおまかせ」と隠し機能を足したゲーム。",
+      "description": "初級・中級・上級、旗、ベストタイム。AIに解かせると、解き方にそれぞれの性格が出ました。隠し機能の答えは本編で。",
+      "tags": [
+        "作り比べ",
+        "マインスイーパー",
+        "AIにおまかせ",
+        "隠し機能"
+      ],
+      "madeBy": "ChatGPT と Claude の作り比べ",
+      "date": "2026-10-20",
+      "preview": "previews/minesweeper.mp4",
+      "poster": "previews/minesweeper.jpg",
+      "links": [
+        {
+          "label": "ChatGPT版",
+          "url": "https://ai-tsukuttetameso.github.io/tsukutte-tameso-minesweeper-chatgpt/"
+        },
+        {
+          "label": "Claude版",
+          "url": "https://ai-tsukuttetameso.github.io/tsukutte-tameso-minesweeper-claude/"
+        }
+      ],
+      "video": "https://www.youtube.com/watch?v=UulKURHyZHk",
+      "frames": [
+        "previews/minesweeper-1.jpg",
+        "previews/minesweeper-2.jpg",
+        "previews/minesweeper-3.jpg",
+        "previews/minesweeper-4.jpg",
+        "previews/minesweeper-5.jpg",
+        "previews/minesweeper-6.jpg"
+      ]
+    },
+    {
+      "id": "money-sim",
+      "volume": 5,
+      "title": "資産人生シミュレーター",
+      "genre": "sim",
+      "icon": "資",
+      "color": "#8a6a2a",
+      "summary": "自分のお金の一生を、1970〜2024年の本当の相場で生きてみるゲーム。",
+      "description": "暴落が来たら時間が止まって、売るか、耐えるか、買い増すかを選びます。タワーマンションやスポーツカーも試しに買えます。ゲームの結果で、投資の助言ではありません（ベータ版）。",
+      "tags": [
+        "Claude",
+        "資産",
+        "暴落",
+        "ベータ版"
+      ],
+      "madeBy": "Claude だけで作成",
+      "date": "2026-10-21",
+      "preview": "previews/money-sim.mp4",
+      "poster": "previews/money-sim.jpg",
+      "links": [
+        {
+          "label": "遊ぶ",
+          "url": "https://ai-tsukuttetameso.github.io/tsukutte-tameso-money-sim/"
+        }
+      ],
+      "video": "https://www.youtube.com/watch?v=zRn96cyslU0",
+      "frames": [
+        "previews/money-sim-1.jpg",
+        "previews/money-sim-2.jpg",
+        "previews/money-sim-3.jpg",
+        "previews/money-sim-4.jpg",
+        "previews/money-sim-5.jpg",
+        "previews/money-sim-6.jpg"
+      ]
+    },
+    {
+      "id": "mamachari-tokaido",
+      "volume": 6,
+      "title": "ママチャリ東海道",
+      "genre": "game",
+      "icon": "輪",
+      "color": "#3d6b8f",
+      "summary": "名古屋からママチャリで東京へ。ガラケー時代の自転車ジャンプゲームを作り比べ。",
+      "description": "タップでジャンプ、空中でもう一度押すと2段ジャンプ。ご当地の景色、夜道、ゴーストとの並走、回転ジャンプつき。東京まで行けるかな。",
+      "tags": [
+        "作り比べ",
+        "携帯ゲーム風",
+        "横スクロール",
+        "ワンボタン"
+      ],
+      "madeBy": "ChatGPT と Claude の作り比べ",
+      "date": "2026-10-22",
+      "preview": "previews/mamachari-tokaido.mp4",
+      "poster": "previews/mamachari-tokaido.jpg",
+      "links": [
+        {
+          "label": "ChatGPT版",
+          "url": "https://ai-tsukuttetameso.github.io/tsukutte-tameso-mamachari-tokaido-chatgpt/"
+        },
+        {
+          "label": "Claude版",
+          "url": "https://ai-tsukuttetameso.github.io/tsukutte-tameso-mamachari-tokaido-claude/"
+        }
+      ],
+      "video": "https://www.youtube.com/watch?v=DGe0S7VqDJE",
+      "frames": [
+        "previews/mamachari-tokaido-1.jpg",
+        "previews/mamachari-tokaido-2.jpg",
+        "previews/mamachari-tokaido-3.jpg",
+        "previews/mamachari-tokaido-4.jpg",
+        "previews/mamachari-tokaido-5.jpg",
+        "previews/mamachari-tokaido-6.jpg"
+      ]
+    },
+    {
+      "id": "dopagaki-gomoku",
+      "volume": 7,
+      "title": "ドパガキ五目",
+      "genre": "game",
+      "icon": "五",
+      "color": "#6b3a8a",
+      "summary": "相手の番を待たなくていい五目並べ。連打すると相手の石が暴発します。",
+      "description": "CPU対戦と、1台で遊べる2人対戦。連打10回で暴発、20回で割り込み。最後に「ドパガキ度」を診断します。初めての人は「はじめて」モードからどうぞ。",
+      "tags": [
+        "共同制作",
+        "五目並べ",
+        "2人対戦",
+        "連打"
+      ],
+      "madeBy": "ChatGPT と Claude の共同制作",
+      "date": "2026-10-24",
+      "preview": "previews/dopagaki-gomoku.mp4",
+      "poster": "previews/dopagaki-gomoku.jpg",
+      "links": [
+        {
+          "label": "遊ぶ",
+          "url": "https://ai-tsukuttetameso.github.io/tsukutte-tameso-dopagaki-gomoku/"
+        }
+      ],
+      "video": "https://www.youtube.com/watch?v=kDFojCdpZDk",
+      "frames": [
+        "previews/dopagaki-gomoku-1.jpg",
+        "previews/dopagaki-gomoku-2.jpg",
+        "previews/dopagaki-gomoku-3.jpg",
+        "previews/dopagaki-gomoku-4.jpg",
+        "previews/dopagaki-gomoku-5.jpg",
+        "previews/dopagaki-gomoku-6.jpg"
+      ]
+    },
+    {
+      "id": "shachiku-typing",
+      "volume": 8,
+      "title": "社畜タイピング",
+      "genre": "game",
+      "icon": "社",
+      "color": "#9a4a1f",
+      "summary": "会社の1日をタイピングでこなして、定時退社をめざすゲーム。",
+      "description": "遅刻の言い訳から会議まで、仕事を打ち切って退社。最後に「何時代の社畜か」を称号で診断します。じっくり遊べる「ふつう」と短い「時短」があります。",
+      "tags": [
+        "共同制作",
+        "タイピング",
+        "称号診断"
+      ],
+      "madeBy": "ChatGPT と Claude の共同制作",
+      "date": "2026-10-25",
+      "releaseAt": "2026-10-25T19:00:00+09:00",
+      "preview": "previews/shachiku-typing.mp4",
+      "poster": "previews/shachiku-typing.jpg",
+      "links": [
+        {
+          "label": "遊ぶ",
+          "url": "https://ai-tsukuttetameso.github.io/tsukutte-tameso-shachiku-typing/"
+        }
+      ],
+      "video": "https://www.youtube.com/watch?v=R4XNauY1FFA",
+      "frames": [
+        "previews/shachiku-typing-1.jpg",
+        "previews/shachiku-typing-2.jpg",
+        "previews/shachiku-typing-3.jpg",
+        "previews/shachiku-typing-4.jpg",
+        "previews/shachiku-typing-5.jpg",
+        "previews/shachiku-typing-6.jpg"
+      ]
+    }
+  ]
+}
